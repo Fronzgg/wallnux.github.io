@@ -1,0 +1,5 @@
+;!@Install@!UTF-8!
+Title="WallNux Messenger - Установщик"
+BeginPrompt="Установить WallNux Messenger?"
+RunProgram="simple-installer.bat"
+;!@InstallEnd@!

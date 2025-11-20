@@ -1,0 +1,195 @@
+.user-badge {
+    display: inline-block;
+    font-size: 16px;
+    margin-left: 4px;
+    vertical-align: middle;
+    cursor: help;
+    transition: transform 0.2s;
+}
+
+.user-badge:hover {
+    transform: scale(1.2);
+}
+
+.badges-container {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    margin-left: 6px;
+}
+
+/* Значки в профиле */
+.profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.profile-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.profile-badge:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.profile-badge-icon {
+    font-size: 18px;
+}
+
+.profile-badge-name {
+    font-weight: 500;
+}
+
+/* Админ панель - выдача значков */
+.badge-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.badge-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background: #2f3136;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.badge-option:hover {
+    background: #36393f;
+    transform: translateY(-2px);
+}
+
+.badge-option.selected {
+    border-color: #5865F2;
+    background: rgba(88, 101, 242, 0.1);
+}
+
+.badge-option-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.badge-option-name {
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.badge-option-desc {
+    font-size: 12px;
+    color: #b9bbbe;
+    text-align: center;
+    margin-top: 4px;
+}
+
+
+/* Галочка verified (синий круг с белой галочкой как в Twitter) */
+.verified-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 4px;
+    background: #1DA1F2;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    vertical-align: middle;
+    cursor: help;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.verified-badge:hover {
+    transform: scale(1.15);
+    filter: brightness(1.2);
+}
+
+/* В списке ЛС */
+.channel .verified-badge {
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    margin-left: 6px;
+}
+
+/* В профиле */
+.profile-view-name .verified-badge {
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* В сообщениях */
+.message-author .verified-badge {
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+/* Бейджи в профиле - большие карточки */
+.profile-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.no-badges {
+    color: #72767d;
+    font-size: 14px;
+    text-align: center;
+    padding: 20px;
+}
+
+.profile-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 14px;
+    border-radius: 16px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    cursor: help;
+}
+
+.profile-badge:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.profile-badge-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.profile-badge-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: #dcddde;
+}

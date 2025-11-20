@@ -1,0 +1,41 @@
+{
+  "name": "WallNux Messenger",
+  "short_name": "WallNux",
+  "description": "Современный мессенджер с голосовыми и видео звонками",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#36393f",
+  "theme_color": "#5865F2",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/screenshot1.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["social", "communication"],
+  "shortcuts": [
+    {
+      "name": "Открыть чат",
+      "short_name": "Чат",
+      "description": "Открыть список чатов",
+      "url": "/",
+      "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

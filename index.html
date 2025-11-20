@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#5865F2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WallNux">
+    <title>WallNux Messenger</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/icon-512.png">
+    <link rel="apple-touch-icon" href="/assets/icon-192.png">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="ban-system.css">
+    <link rel="stylesheet" href="notifications.css">
+    <link rel="stylesheet" href="badges.css">
+    <link rel="stylesheet" href="telegram-search.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="p2p-manager.js"></script>
+    <script src="p2p-adapter.js"></script>
+    
+    <!-- PWA Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('✅ Service Worker registered'))
+                    .catch(err => console.log('❌ Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-content">
+            <div class="logo">
+                <span class="logo-text">WallNux</span>
+                <div class="logo-subtitle">Messenger</div>
+            </div>
+            <div class="loading-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+            <div class="encryption-badge">
+                <i class="fas fa-lock"></i>
+                <span>Secure Connection</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server List (Left Sidebar) -->
+    <div class="server-list">
+        <div class="server-icon home active" id="friendsBtn" title="Друзья">
+            <svg width="28" height="28" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z"/>
+                <path fill="currentColor" d="M20.0001 20.006H22.0001V19.006C22.0001 16.4433 20.2697 14.4415 17.5213 13.5352C19.0621 14.4488 20.0001 16.0865 20.0001 18.006V20.006Z"/>
+                <path fill="currentColor" d="M14.8834 11.9077C16.6657 11.5044 18.0001 9.9077 18.0001 8.00598C18.0001 5.80098 16.2051 4.00598 14.0001 4.00598C13.6395 4.00598 13.2931 4.06115 12.9687 4.16115C13.6061 5.03115 14.0001 6.12115 14.0001 8.00598C14.0001 9.88598 13.6061 10.9785 12.9687 11.8485C13.2931 11.9485 13.6395 12.006 14.0001 12.006C14.3001 12.006 14.5961 11.9727 14.8834 11.9077Z"/>
+            </svg>
+        </div>
+        <div class="server-separator"></div>
+        <div class="server-icon" id="groupsBtn" title="Группы и каналы">
+            <svg width="28" height="28" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 10c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 1c-1.33 0-4 .67-4 2v1h8v-1c0-1.33-2.67-2-4-2z"/>
+            </svg>
+        </div>
+        <div class="server-separator"></div>
+        <div class="server-icon" id="addServerBtn" title="Добавить сервер">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M20 11H13V4C13 3.4 12.6 3 12 3C11.4 3 11 3.4 11 4V11H4C3.4 11 3 11.4 3 12C3 12.6 3.4 13 4 13H11V20C11 20.6 11.4 21 12 21C12.6 21 13 20.6 13 20V13H20C20.6 13 21 12.6 21 12C21 11.4 20.6 11 20 11Z"/>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Channel List / DM List (Second Sidebar) -->
+    <div class="channel-list" id="channelList">
+        <div class="server-header" id="serverHeader">
+            <div class="server-name" id="serverName">Friends</div>
+            <div class="server-dropdown">▼</div>
+        </div>
+
+        <!-- DM List (shown in Friends view) -->
+        <div id="dmListView" class="dm-list-view">
+            <div class="dm-search-bar">
+                <input type="text" placeholder="Найти или начать беседу">
+            </div>
+            <div class="channel-category">
+                <div class="category-header">
+                    <span>ЛИЧНЫЕ СООБЩЕНИЯ</span>
+                </div>
+                <div id="dmList" class="dm-list">
+                    <!-- DM items will be added here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Groups View (shown when Groups button clicked) -->
+        <div id="groupsView" class="groups-view" style="display: none;">
+            <div class="dm-search-bar">
+                <input type="text" id="groupSearchInput" placeholder="Поиск групп и каналов">
+            </div>
+            <div class="groups-section">
+                <div class="groups-header">
+                    <div class="groups-header-left">
+                        <svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9.3 5.3L15 11l-5.7 5.7c-.4.4-.4 1 0 1.4.4.4 1 .4 1.4 0l6.4-6.4c.4-.4.4-1 0-1.4L10.7 3.9c-.4-.4-1-.4-1.4 0-.4.4-.4 1 0 1.4z"/></svg>
+                        <span class="groups-header-title">МОИ ГРУППЫ</span>
+                    </div>
+                    <button class="groups-add-btn" id="addGroupBtn" title="Создать группу">+</button>
+                </div>
+                <div class="groups-list" id="groupsList"></div>
+            </div>
+            <div class="groups-section">
+                <div class="groups-header">
+                    <div class="groups-header-left">
+                        <svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9.3 5.3L15 11l-5.7 5.7c-.4.4-.4 1 0 1.4.4.4 1 .4 1.4 0l6.4-6.4c.4-.4.4-1 0-1.4L10.7 3.9c-.4-.4-1-.4-1.4 0-.4.4-.4 1 0 1.4z"/></svg>
+                        <span class="groups-header-title">КАНАЛЫ</span>
+                    </div>
+                    <button class="groups-add-btn" id="addChannelBtn" title="Создать канал">+</button>
+                </div>
+                <div class="groups-list" id="channelsList"></div>
+            </div>
+        </div>
+
+        <!-- Channels View (shown in Server view) -->
+        <div id="channelsView" class="channels-view" style="display: none;">
+            <div class="channels-container">
+                <div class="channel-category">
+                    <div class="category-header">
+                        <svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9.3 5.3L15 11l-5.7 5.7c-.4.4-.4 1 0 1.4.4.4 1 .4 1.4 0l6.4-6.4c.4-.4.4-1 0-1.4L10.7 3.9c-.4-.4-1-.4-1.4 0-.4.4-.4 1 0 1.4z"/></svg>
+                        <span>TEXT CHANNELS</span>
+                    </div>
+                    <div class="channel text-channel active" data-channel="general">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M5.88657 21C5.57547 21 5.3399 20.7189 5.39427 20.4126L6.00001 17H2.59511C2.28449 17 2.04905 16.7198 2.10259 16.4138L2.27759 15.4138C2.31946 15.1746 2.52722 15 2.77011 15H6.35001L7.41001 9H4.00511C3.69449 9 3.45905 8.71977 3.51259 8.41381L3.68759 7.41381C3.72946 7.17456 3.93722 7 4.18011 7H7.76001L8.39677 3.41262C8.43914 3.17391 8.64664 3 8.88907 3H9.87344C10.1845 3 10.4201 3.28107 10.3657 3.58738L9.76001 7H15.76L16.3968 3.41262C16.4391 3.17391 16.6466 3 16.8891 3H17.8734C18.1845 3 18.4201 3.28107 18.3657 3.58738L17.76 7H21.1649C21.4755 7 21.711 7.28023 21.6574 7.58619L21.4824 8.58619C21.4406 8.82544 21.2328 9 20.9899 9H17.41L16.35 15H19.7549C20.0655 15 20.301 15.2802 20.2474 15.5862L20.0724 16.5862C20.0306 16.8254 19.8228 17 19.5799 17H16L15.3632 20.5874C15.3209 20.8261 15.1134 21 14.8709 21H13.8866C13.5755 21 13.3399 20.7189 13.3943 20.4126L14 17H8.00001L7.36325 20.5874C7.32088 20.8261 7.11337 21 6.87094 21H5.88657ZM9.41045 9L8.35045 15H14.3504L15.4104 9H9.41045Z"/></svg>
+                        <span>general</span>
+                    </div>
+                    <div class="channel text-channel" data-channel="random">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M5.88657 21C5.57547 21 5.3399 20.7189 5.39427 20.4126L6.00001 17H2.59511C2.28449 17 2.04905 16.7198 2.10259 16.4138L2.27759 15.4138C2.31946 15.1746 2.52722 15 2.77011 15H6.35001L7.41001 9H4.00511C3.69449 9 3.45905 8.71977 3.51259 8.41381L3.68759 7.41381C3.72946 7.17456 3.93722 7 4.18011 7H7.76001L8.39677 3.41262C8.43914 3.17391 8.64664 3 8.88907 3H9.87344C10.1845 3 10.4201 3.28107 10.3657 3.58738L9.76001 7H15.76L16.3968 3.41262C16.4391 3.17391 16.6466 3 16.8891 3H17.8734C18.1845 3 18.4201 3.28107 18.3657 3.58738L17.76 7H21.1649C21.4755 7 21.711 7.28023 21.6574 7.58619L21.4824 8.58619C21.4406 8.82544 21.2328 9 20.9899 9H17.41L16.35 15H19.7549C20.0655 15 20.301 15.2802 20.2474 15.5862L20.0724 16.5862C20.0306 16.8254 19.8228 17 19.5799 17H16L15.3632 20.5874C15.3209 20.8261 15.1134 21 14.8709 21H13.8866C13.5755 21 13.3399 20.7189 13.3943 20.4126L14 17H8.00001L7.36325 20.5874C7.32088 20.8261 7.11337 21 6.87094 21H5.88657ZM9.41045 9L8.35045 15H14.3504L15.4104 9H9.41045Z"/></svg>
+                        <span>random</span>
+                    </div>
+                </div>
+                <div class="channel-category">
+                    <div class="category-header">
+                        <svg width="12" height="12" viewBox="0 0 24 24"><path fill="currentColor" d="M9.3 5.3L15 11l-5.7 5.7c-.4.4-.4 1 0 1.4.4.4 1 .4 1.4 0l6.4-6.4c.4-.4.4-1 0-1.4L10.7 3.9c-.4-.4-1-.4-1.4 0-.4.4-.4 1 0 1.4z"/></svg>
+                        <span>VOICE CHANNELS</span>
+                    </div>
+                    <div class="channel voice-channel" data-channel="voice-1">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C10.895 2 10 2.895 10 4V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V4C14 2.895 13.105 2 12 2ZM19 10V12C19 15.866 15.866 19 12 19C8.134 19 5 15.866 5 12V10H3V12C3 16.418 6.269 20.099 10.5 20.856V24H13.5V20.856C17.731 20.099 21 16.418 21 12V10H19Z"/></svg>
+                        <span>General Voice</span>
+                    </div>
+                    <div class="channel voice-channel" data-channel="voice-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C10.895 2 10 2.895 10 4V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V4C14 2.895 13.105 2 12 2ZM19 10V12C19 15.866 15.866 19 12 19C8.134 19 5 15.866 5 12V10H3V12C3 16.418 6.269 20.099 10.5 20.856V24H13.5V20.856C17.731 20.099 21 16.418 21 12V10H19Z"/></svg>
+                        <span>Gaming</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="user-panel">
+            <div class="user-info" id="userInfoBtn">
+                <div class="user-avatar">U</div>
+                <div class="user-details">
+                    <div class="username">User#0001</div>
+                    <div class="user-status" id="userStatusText">
+                        <span class="status-indicator"></span>
+                        <span>Online</span>
+                    </div>
+                </div>
+            </div>
+            <div class="user-controls">
+                <button class="control-btn" id="muteBtn" title="Mute">
+                    <svg class="icon-normal" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C10.895 2 10 2.895 10 4V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V4C14 2.895 13.105 2 12 2ZM19 10V12C19 15.866 15.866 19 12 19C8.134 19 5 15.866 5 12V10H3V12C3 16.418 6.269 20.099 10.5 20.856V24H13.5V20.856C17.731 20.099 21 16.418 21 12V10H19Z"/></svg>
+                    <svg class="icon-slashed" style="display: none;" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14c1.105 0 2-.895 2-2V4c0-1.105-.895-2-2-2s-2 .895-2 2v8c0 1.105.895 2 2 2zM19 12v-2h-2v2c0 2.757-1.79 5.08-4.2 5.86v2.006h2.2v2H9.5v-2h2.2V17.86C9.29 17.08 7.5 14.757 7.5 12V10H5v2c0 3.53 2.61 6.43 6 6.92V22h2v-3.08c3.39-.49 6-3.39 6-6.92zm-2.293-9.293l-1.414-1.414L3 13.586l1.414 1.414L16.707 2.707z"/></svg>
+                </button>
+                <button class="control-btn" id="deafenBtn" title="Deafen">
+                    <svg class="icon-normal" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M3 10v4c0 .55.45 1 1 1h3l5 5V4L7 9H4c-.55 0-1 .45-1 1zm16.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM16 4.27v15.46c2.28-.94 4-3.25 4-5.99s-1.72-5.05-4-5.99z"/></svg>
+                    <svg class="icon-slashed" style="display: none;" width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M3 10v4c0 .55.45 1 1 1h3l5 5V4L7 9H4c-.55 0-1 .45-1 1zm16.5 2c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM16 4.27v15.46c2.28-.94 4-3.25 4-5.99s-1.72-5.05-4-5.99zM4.707 2.293L3.293 3.707 21.293 21.707l1.414-1.414L4.707 2.293z"/></svg>
+                </button>
+                <button class="control-btn" id="settingsBtn" title="Settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- User Profile Bubble Menu -->
+        <div id="userProfileBubble" class="user-profile-bubble hidden">
+            <div class="profile-bubble-header">
+                <div class="profile-bubble-avatar">U</div>
+                <div class="profile-bubble-info">
+                    <div class="profile-bubble-name">User#0001</div>
+                    <div class="profile-bubble-email">user@example.com</div>
+                </div>
+            </div>
+            <div class="profile-bubble-divider"></div>
+            <div class="profile-bubble-status">
+                <div class="status-option" data-status="online">
+                    <span class="status-indicator status-online"></span>
+                    <span>Онлайн</span>
+                </div>
+                <div class="status-option" data-status="idle">
+                    <span class="status-indicator status-idle"></span>
+                    <span>Не активен</span>
+                </div>
+                <div class="status-option" data-status="dnd">
+                    <span class="status-indicator status-dnd"></span>
+                    <span>Не беспокоить</span>
+                </div>
+                <div class="status-option" data-status="offline">
+                    <span class="status-indicator status-offline"></span>
+                    <span>Оффлайн</span>
+                </div>
+            </div>
+            <div class="profile-bubble-divider"></div>
+            <button class="profile-bubble-btn" id="editProfileBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                <span>Мой профиль</span>
+            </button>
+            <button class="profile-bubble-btn" id="openSettingsBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+                <span>Настройки</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <!-- Server/Channel Chat View -->
+        <div id="chatView" class="chat-view" style="display: none;">
+            <div class="chat-header">
+                <div class="channel-info" id="chatHeaderInfo">
+                    <!-- Header will be dynamically populated -->
+                </div>
+                <div class="chat-controls">
+                    <!-- DM Call Buttons (shown only in DM view) -->
+                    <button class="icon-btn dm-call-btn" id="dmAudioCallBtn" title="Голосовой звонок" style="display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
+                    </button>
+                    <button class="icon-btn dm-call-btn" id="dmVideoCallBtn" title="Видео звонок" style="display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    </button>
+                    <button class="icon-btn dm-call-btn" id="dmProfileBtn" title="Профиль пользователя" style="display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    </button>
+                    
+                    <!-- Group Call Button (shown in channels) -->
+                    <button class="icon-btn" id="startGroupCallBtn" title="Начать групповой звонок" style="display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 13h-3v3H9v-3H6v-2h3V8h2v3h3v2z"/></svg>
+                    </button>
+                    <button class="icon-btn" id="membersBtn" title="Участники" style="display: none;">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="messages" id="messagesContainer"></div>
+            <div class="message-input-container">
+                <div class="message-input-wrapper">
+                    <button class="attach-btn" id="attachBtn" title="Прикрепить файл"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C11.5 2 11 2.19 10.59 2.59L2.59 10.59C1.8 11.37 1.8 12.63 2.59 13.41C3.37 14.2 4.63 14.2 5.41 13.41L11 7.83V16C11 16.55 11.45 17 12 17C12.55 17 13 16.55 13 16V7.83L18.59 13.41C19.37 14.2 20.63 14.2 21.41 13.41C22.2 12.63 22.2 11.37 21.41 10.59L13.41 2.59C13 2.19 12.5 2 12 2Z"/></svg></button>
+                    <input type="text" id="messageInput" placeholder="Написать сообщение..." />
+                    <button class="voice-btn" id="voiceBtn" title="Удерживайте для записи голосового сообщения">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                    </button>
+                    <button class="video-circle-btn" id="videoCircleBtn" title="Удерживайте для записи видео кружка">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    </button>
+                    <div class="emoji-btn" id="emojiBtn" title="Эмодзи"><svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.486 2 2 6.486 2 12C2 17.514 6.486 22 12 22C17.514 22 22 17.514 22 12C22 6.486 17.514 2 12 2ZM15.5 8C16.328 8 17 8.672 17 9.5C17 10.328 16.328 11 15.5 11C14.672 11 14 10.328 14 9.5C14 8.672 14.672 8 15.5 8ZM8.5 8C9.328 8 10 8.672 10 9.5C10 10.328 9.328 11 8.5 11C7.672 11 7 10.328 7 9.5C7 8.672 7.672 8 8.5 8ZM12 17.5C9.656 17.5 7.586 16.019 6.673 13.852C6.594 13.643 6.673 13.407 6.852 13.266C7.031 13.125 7.281 13.117 7.469 13.242C8.766 14.109 10.352 14.5 12 14.5C13.648 14.5 15.234 14.109 16.531 13.242C16.719 13.117 16.969 13.125 17.148 13.266C17.327 13.407 17.406 13.643 17.327 13.852C16.414 16.019 14.344 17.5 12 17.5Z"/></svg></div>
+                    <button class="send-btn" id="sendMessageBtn" title="Отправить">
+                        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Voice Recorder Indicator -->
+            <div class="voice-recorder" id="voiceRecorder" style="display: none;">
+                <div class="voice-recorder-content">
+                    <div class="voice-visualizer">
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                        <div class="voice-bar"></div>
+                    </div>
+                    <div class="voice-recorder-info">
+                        <span id="recordingTimer">0:00</span>
+                        <span class="recording-label">Recording...</span>
+                    </div>
+                    <button class="voice-stop-btn" id="stopVoiceBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M6 6h12v12H6z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Friends View (Main Content) -->
+        <div id="friendsView" class="friends-main-view" style="display: none;">
+            <div class="friends-header">
+                <div class="friends-tabs">
+                    <button class="friends-tab active" data-tab="online">Онлайн</button>
+                    <button class="friends-tab" data-tab="all">Все</button>
+                    <button class="friends-tab" data-tab="pending">Ожидают</button>
+                    <button class="friends-tab" data-tab="add">Поиск</button>
+                </div>
+            </div>
+            <div class="friends-content-wrapper">
+                <div id="friendsOnline" class="friends-list active-tab"></div>
+                <div id="friendsAll" class="friends-list"></div>
+                <div id="friendsPending" class="friends-list"></div>
+                <div id="friendsAdd" class="friends-list">
+                    <div class="add-friend-form">
+                        <h3>ПОИСК ПОЛЬЗОВАТЕЛЕЙ</h3>
+                        <p>Найдите пользователя и начните общение</p>
+                        <div class="add-friend-input-wrapper">
+                            <input type="text" id="searchUserInput" placeholder="Введите имя пользователя..." />
+                        </div>
+                        <div id="searchResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice/Video Call Interface (hidden by default) -->
+    <!-- Discord-style Call Interface -->
+    <div id="callInterface" class="call-interface-discord hidden">
+        <div class="call-background-blur"></div>
+        
+        <div class="call-header-discord">
+            <div class="call-info-header">
+                <div class="call-status-text">В звонке</div>
+                <div class="call-timer" id="callTimer">00:00</div>
+                <div class="call-with-user" id="callWithUser"></div>
+            </div>
+            <div class="call-header-actions">
+                <button class="call-header-btn" id="minimizeCallBtn" title="Свернуть">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13H5v-2h14v2z"/></svg>
+                </button>
+                <button class="call-header-btn" id="fullscreenCallBtn" title="На весь экран">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                </button>
+                <button class="call-header-btn close" id="closeCallBtn" title="Завершить звонок">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="call-participants-grid">
+            <!-- Local User (You) -->
+            <div class="call-participant-card" id="localParticipantCard">
+                <div class="participant-video-container">
+                    <video id="localVideo" autoplay muted playsinline></video>
+                    <div class="participant-avatar-overlay" id="localAvatarOverlay">
+                        <div class="participant-avatar-large" id="localAvatar">U</div>
+                    </div>
+                </div>
+                <div class="participant-info-bar">
+                    <div class="participant-name-tag" id="localNameTag">Вы</div>
+                    <div class="participant-status-icons">
+                        <span class="status-icon" id="localMicStatus">🎤</span>
+                        <span class="status-icon" id="localCamStatus">📹</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Remote User -->
+            <div class="call-participant-card" id="remoteParticipantCard" style="display: none;">
+                <div class="participant-video-container">
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="participant-avatar-overlay" id="remoteAvatarOverlay">
+                        <div class="participant-avatar-large" id="remoteAvatar">F</div>
+                    </div>
+                </div>
+                <div class="participant-info-bar">
+                    <div class="participant-name-tag" id="remoteNameTag">Friend</div>
+                    <div class="participant-status-icons">
+                        <span class="status-icon" id="remoteMicStatus">🎤</span>
+                        <span class="status-icon" id="remoteCamStatus">📹</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="call-controls-discord">
+            <button id="toggleAudioBtn" class="call-control-btn-discord" title="Микрофон">
+                <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C10.895 2 10 2.895 10 4V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V4C14 2.895 13.105 2 12 2Z"/><path fill="currentColor" d="M19 10V12C19 15.866 15.866 19 12 19C8.134 19 5 15.866 5 12V10H3V12C3 16.418 6.269 20.099 10.5 20.856V24H13.5V20.856C17.731 20.099 21 16.418 21 12V10H19Z"/></svg>
+            </button>
+            <button id="toggleVideoBtn" class="call-control-btn-discord" title="Камера">
+                <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M21 6.5L17 10.5V7C17 6.45 16.55 6 16 6H4C3.45 6 3 6.45 3 7V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V13.5L21 17.5V6.5Z"/></svg>
+            </button>
+            <button id="toggleScreenBtn" class="call-control-btn-discord" title="Демонстрация экрана">
+                <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M21 2H3C1.89 2 1 2.89 1 4V16C1 17.11 1.89 18 3 18H10V20H8V22H16V20H14V18H21C22.11 18 23 17.11 23 16V4C23 2.89 22.11 2 21 2ZM21 16H3V4H21V16Z"/></svg>
+            </button>
+            <button id="leaveCallBtn" class="call-control-btn-discord leave" title="Завершить звонок">
+                <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 9C10.4 9 8.85 9.25 7.4 9.72V12.82C7.4 13.22 7.17 13.56 6.84 13.72C5.86 14.21 4.97 14.84 4.17 15.57C3.85 15.85 3.35 15.84 3.03 15.56L0.77 13.3C0.29 12.82 0.29 12.04 0.77 11.56C3.93 8.4 8.13 6.5 12 6.5C15.87 6.5 20.07 8.4 23.23 11.56C23.71 12.04 23.71 12.82 23.23 13.3L20.97 15.56C20.65 15.84 20.15 15.85 19.83 15.57C19.03 14.84 18.14 14.21 17.16 13.72C16.83 13.56 16.6 13.22 16.6 12.82V9.72C15.15 9.25 13.6 9 12 9Z"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Minimized Call Bubble -->
+    <div id="callBubble" class="call-bubble hidden">
+        <div class="call-bubble-content" id="expandCallBtn">
+            <div class="call-bubble-avatars">
+                <div class="call-bubble-avatar" id="bubbleLocalAvatar">U</div>
+                <div class="call-bubble-avatar" id="bubbleRemoteAvatar">F</div>
+            </div>
+            <div class="call-bubble-info">
+                <div class="call-bubble-name" id="bubbleCallWith">Звонок</div>
+                <div class="call-bubble-timer" id="bubbleCallTimer">00:00</div>
+            </div>
+            <div class="call-bubble-controls">
+                <button class="call-bubble-btn" id="bubbleToggleAudio" title="Микрофон">
+                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C10.895 2 10 2.895 10 4V12C10 13.105 10.895 14 12 14C13.105 14 14 13.105 14 12V4C14 2.895 13.105 2 12 2Z"/></svg>
+                </button>
+                <button class="call-bubble-btn leave" id="bubbleLeaveCall" title="Завершить">
+                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 9C10.4 9 8.85 9.25 7.4 9.72V12.82C7.4 13.22 7.17 13.56 6.84 13.72C5.86 14.21 4.97 14.84 4.17 15.57C3.85 15.85 3.35 15.84 3.03 15.56L0.77 13.3C0.29 12.82 0.29 12.04 0.77 11.56C3.93 8.4 8.13 6.5 12 6.5C15.87 6.5 20.07 8.4 23.23 11.56C23.71 12.04 23.71 12.82 23.23 13.3L20.97 15.56C20.65 15.84 20.15 15.85 19.83 15.57C19.03 14.84 18.14 14.21 17.16 13.72C16.83 13.56 16.6 13.22 16.6 12.82V9.72C15.15 9.25 13.6 9 12 9Z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Incoming Call Notification -->
+    <div id="incomingCall" class="incoming-call-fullscreen hidden">
+        <div class="incoming-call-overlay"></div>
+        <div class="incoming-call-content-fullscreen">
+            <div class="caller-info-fullscreen">
+                <div class="caller-avatar-fullscreen" id="callerAvatarFullscreen">
+                    <div class="caller-avatar-pulse"></div>
+                </div>
+                <div class="caller-name-fullscreen" id="callerNameFullscreen"></div>
+                <div class="caller-status-fullscreen" id="callerStatusFullscreen">is calling you...</div>
+            </div>
+            <div class="incoming-call-actions-fullscreen">
+                <button id="rejectCallBtn" class="call-action-btn-fullscreen reject" title="Decline">
+                    <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
+                </button>
+                <button id="acceptCallBtn" class="call-action-btn-fullscreen accept" title="Accept">
+                    <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Profile View Modal (Discord-style) -->
+    <div id="userProfileViewModal" class="user-profile-view-modal hidden">
+        <div class="profile-view-overlay"></div>
+        <div class="profile-view-card">
+            <button class="profile-view-close" id="userProfileViewClose">✕</button>
+            <div class="profile-view-banner" id="viewUserBanner">
+                <button class="banner-upload-btn" id="bannerUploadBtn" style="display: none;">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                    Изменить баннер
+                </button>
+            </div>
+            <input type="file" id="bannerUpload" accept="image/*" style="display: none;">
+            <div class="profile-view-content">
+                <div class="profile-view-avatar-section">
+                    <div class="profile-view-avatar" id="viewUserAvatar">U</div>
+                    <div class="profile-view-status">
+                        <span class="status-indicator status-online"></span>
+                    </div>
+                </div>
+                <div class="profile-view-info">
+                    <div class="profile-view-username-wrapper">
+                        <div class="profile-view-username" id="viewUsername">Username</div>
+                        <div class="profile-view-badges" id="viewUserBadges"></div>
+                    </div>
+                    <div class="profile-view-tag" id="viewUserTag">#0001</div>
+                </div>
+                <div class="profile-view-divider"></div>
+                <div class="profile-view-section">
+                    <div class="profile-view-section-title">О СЕБЕ</div>
+                    <div class="profile-view-bio" id="viewUserBio">Нет информации</div>
+                </div>
+                <div class="profile-view-section">
+                    <div class="profile-view-section-title">УЧАСТНИК С</div>
+                    <div class="profile-view-date" id="viewUserJoined">Январь 2024</div>
+                </div>
+                <div class="profile-view-actions">
+                    <button class="profile-action-btn primary" id="viewUserMessage">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                        Написать
+                    </button>
+                    <button class="profile-action-btn" id="viewUserCall">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
+                    </button>
+                    <button class="profile-action-btn" id="viewUserVideoCall">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="profile-modal hidden">
+        <div class="profile-content">
+            <div class="profile-header">
+                <h2>Редактировать профиль</h2>
+                <button class="profile-close" id="profileCloseBtn">✕</button>
+            </div>
+            <div class="profile-body">
+                <div class="profile-banner-section">
+                    <div class="profile-banner-preview" id="profileBannerPreview">
+                        <button class="banner-upload-btn-edit" id="bannerUploadBtnEdit">
+                            <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                            Изменить баннер
+                        </button>
+                    </div>
+                    <input type="file" id="profileBannerUpload" accept="image/*" style="display: none;">
+                </div>
+                <div class="profile-avatar-section">
+                    <div class="profile-avatar-large" id="profileAvatarLarge">
+                        <div class="avatar-upload-overlay">Нажмите для загрузки</div>
+                    </div>
+                    <input type="file" id="avatarUpload" accept="image/*" style="display: none;">
+                </div>
+                <div class="profile-form-group">
+                    <label>Имя пользователя</label>
+                    <input type="text" id="profileUsername" placeholder="Введите имя пользователя">
+                </div>
+                <div class="profile-form-group">
+                    <label>Email</label>
+                    <input type="email" id="profileEmail" placeholder="Введите email">
+                </div>
+                <div class="profile-form-group">
+                    <label>О себе</label>
+                    <textarea id="profileBio" placeholder="Расскажите о себе"></textarea>
+                </div>
+                <button class="profile-save-btn" id="profileSaveBtn">Сохранить изменения</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="settings-panel">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="profile-close" id="settingsCloseBtn">✕</button>
+        </div>
+        <div class="settings-body">
+            <div class="settings-section">
+                <div class="settings-section-title">Appearance</div>
+                <div class="settings-item" id="themeSelector">
+                    <div class="settings-item-label">
+                        <h3>Theme</h3>
+                        <p>Choose your preferred theme</p>
+                    </div>
+                </div>
+                <div class="theme-selector">
+                    <div class="theme-option active" data-theme="dark">
+                        <div class="theme-option-icon">🌙</div>
+                        <div class="theme-option-label">Dark</div>
+                    </div>
+                    <div class="theme-option" data-theme="light">
+                        <div class="theme-option-icon">☀️</div>
+                        <div class="theme-option-label">Light</div>
+                    </div>
+                </div>
+            </div>
+            <div class="settings-section">
+                <div class="settings-section-title">Notifications</div>
+                <div class="settings-item">
+                    <div class="settings-item-label">
+                        <h3>Enable Notifications</h3>
+                        <p>Receive notifications for new messages</p>
+                    </div>
+                    <div class="toggle-switch active" id="notificationsToggle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gifts Panel -->
+    <div id="giftsPanel" class="gifts-panel">
+        <div class="gifts-header">
+            <h3>Send Gift</h3>
+            <button class="profile-close" id="giftsCloseBtn">✕</button>
+        </div>
+        <div class="gifts-tabs">
+            <button class="gift-tab active" data-tab="regular">Regular</button>
+            <button class="gift-tab" data-tab="nft">NFT</button>
+        </div>
+        <div class="gifts-content">
+            <div class="gifts-grid" id="giftsGrid">
+                <!-- Gifts will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <!-- Admin Panel - Updated -->
+    <div id="adminPanel" class="admin-panel">
+        <div class="admin-panel-overlay"></div>
+        <div class="admin-panel-content">
+            <div class="admin-panel-header">
+                <h2>🛡️ Админ панель</h2>
+                <button class="admin-close-btn" id="adminPanelClose">✕</button>
+            </div>
+            <div class="admin-panel-body">
+                <!-- Search Section -->
+                <div class="admin-section">
+                    <h3>🔍 Поиск пользователей</h3>
+                    <div class="admin-search-box">
+                        <input type="text" id="adminUserSearch" placeholder="Введите имя или email..." class="admin-input">
+                        <button id="adminSearchBtn" class="admin-btn primary">Найти</button>
+                    </div>
+                    <div id="adminSearchResults" class="admin-search-results"></div>
+                </div>
+                
+                <!-- Selected User Info -->
+                <div class="admin-section">
+                    <div id="selectedUserInfo" class="selected-user-info">
+                        <em>Выберите пользователя из результатов поиска</em>
+                    </div>
+                </div>
+                
+                <!-- Badge Management -->
+                <div class="admin-section">
+                    <h3>🏅 Управление бейджами</h3>
+                    <select id="badgeSelect" class="admin-select">
+                        <option value="">Выберите бейдж</option>
+                        <option value="verified">✓ Verified (Синяя галочка)</option>
+                        <option value="developer">⚙️ Developer</option>
+                        <option value="founder">👑 Founder</option>
+                        <option value="admin">🛡️ Admin</option>
+                        <option value="nitro">💎 Nitro</option>
+                        <option value="partner">🤝 Partner</option>
+                        <option value="moderator">🔨 Moderator</option>
+                        <option value="supporter">❤️ Supporter</option>
+                    </select>
+                    <button id="giveBadgeBtn" class="admin-btn success">Выдать бейдж</button>
+                </div>
+                
+                <!-- User Actions -->
+                <div class="admin-section">
+                    <h3>⚡ Действия с пользователем</h3>
+                    <div class="admin-actions">
+                        <button id="banUserBtn" class="admin-btn danger">🚫 Забанить</button>
+                        <button id="unbanUserBtn" class="admin-btn warning">✅ Разбанить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notifications Container -->
+    <div id="customNotifications" class="custom-notifications-container"></div>
+
+    <!-- Banned Modal -->
+    <div id="bannedModal" class="banned-modal hidden">
+        <div class="banned-overlay"></div>
+        <div class="banned-content">
+            <div class="banned-icon">🛑</div>
+            <h2>Вы заблокированы</h2>
+            <p class="ban-reason" id="banReason">Причина: Нарушение правил сообщества</p>
+            <p class="ban-info">Ваш аккаунт был заблокирован администратором. Вы можете подать апелляцию.</p>
+            <div class="banned-actions">
+                <button id="bannedUnderstandBtn" class="banned-btn secondary">Понятно</button>
+                <button id="bannedAppealBtn" class="banned-btn primary">Подать апелляцию</button>
+                <button id="bannedLogoutBtn" class="banned-btn danger">Выйти</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appeal Modal -->
+    <div id="appealModal" class="appeal-modal hidden">
+        <div class="appeal-overlay"></div>
+        <div class="appeal-content">
+            <div class="appeal-header">
+                <h2>📝 Подать апелляцию</h2>
+                <button class="appeal-close" id="appealCloseBtn">✕</button>
+            </div>
+            <div class="appeal-body">
+                <p>Опишите, почему вы считаете, что бан был несправедливым:</p>
+                <textarea id="appealText" placeholder="Введите текст апелляции..." maxlength="1000"></textarea>
+                <div class="appeal-char-count"><span id="appealCharCount">0</span>/1000</div>
+            </div>
+            <div class="appeal-footer">
+                <button id="appealCancelBtn" class="appeal-btn secondary">Отмена</button>
+                <button id="appealSubmitBtn" class="appeal-btn primary">Отправить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="notifications.js"></script>
+    <script src="badges.js"></script>
+    <script src="status-system-fix.js"></script>
+    <script src="script.js"></script>
+    <script src="modern-features.js"></script>
+    <script src="admin-features.js"></script>
+    <script src="ban-system.js"></script>
+    <script src="telegram-search.js"></script>
+    <script src="electron-notifications.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WallNux - Вход</title>
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <!-- Background video placeholder -->
+    <video id="bgVideo" autoplay muted loop playsinline class="bg-video">
+        <!-- Видео добавишь сам -->
+    </video>
+    
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="logo">
+                <h1>WallNux</h1>
+                <p id="subtitle">С возвращением!</p>
+            </div>
+
+            <form id="authForm">
+                <div class="form-group" id="usernameGroup" style="display: none;">
+                    <label>ИМЯ ПОЛЬЗОВАТЕЛЯ</label>
+                    <input type="text" id="username" autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label>EMAIL</label>
+                    <input type="email" id="email" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label>ПАРОЛЬ</label>
+                    <input type="password" id="password" required autocomplete="current-password">
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">Войти</button>
+
+                <div class="switch-mode">
+                    <span id="switchText">Нужен аккаунт?</span>
+                    <a href="#" id="switchLink">Зарегистрироваться</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>

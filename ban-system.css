@@ -1,0 +1,331 @@
+/* ============================================
+   BAN SYSTEM STYLES
+   ============================================ */
+
+/* Banned Modal */
+.banned-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: none;
+}
+
+.banned-modal:not(.hidden) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.banned-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+}
+
+.banned-content {
+    position: relative;
+    background: linear-gradient(135deg, #1e1f22 0%, #2b2d31 100%);
+    border-radius: 20px;
+    padding: 48px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(237, 66, 69, 0.5);
+    border: 2px solid #ed4245;
+    animation: banShake 0.5s ease;
+}
+
+@keyframes banShake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+    20%, 40%, 60%, 80% { transform: translateX(10px); }
+}
+
+.banned-icon {
+    font-size: 80px;
+    margin-bottom: 24px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.banned-content h2 {
+    font-size: 32px;
+    color: #ed4245;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.ban-reason {
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 12px;
+    padding: 16px;
+    background: rgba(237, 66, 69, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #ed4245;
+}
+
+.ban-info {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 32px;
+}
+
+.banned-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.banned-btn {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.banned-btn.primary {
+    background: #5865f2;
+    color: #fff;
+}
+
+.banned-btn.primary:hover {
+    background: #4752c4;
+    transform: translateY(-2px);
+}
+
+.banned-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.banned-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.banned-btn.danger {
+    background: #ed4245;
+    color: #fff;
+}
+
+.banned-btn.danger:hover {
+    background: #c03537;
+    transform: translateY(-2px);
+}
+
+/* Appeal Modal */
+.appeal-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: none;
+}
+
+.appeal-modal:not(.hidden) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.appeal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.appeal-content {
+    position: relative;
+    background: linear-gradient(135deg, #1e1f22 0%, #2b2d31 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideInUp 0.3s ease;
+}
+
+.appeal-header {
+    padding: 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.appeal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: #fff;
+}
+
+.appeal-close {
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.appeal-close:hover {
+    background: rgba(237, 66, 69, 0.3);
+    transform: rotate(90deg);
+}
+
+.appeal-body {
+    padding: 24px;
+}
+
+.appeal-body p {
+    margin: 0 0 16px 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}
+
+.appeal-body textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    transition: all 0.2s;
+}
+
+.appeal-body textarea:focus {
+    outline: none;
+    border-color: #5865f2;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.appeal-char-count {
+    text-align: right;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 8px;
+}
+
+.appeal-footer {
+    padding: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.appeal-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.appeal-btn.primary {
+    background: #5865f2;
+    color: #fff;
+}
+
+.appeal-btn.primary:hover {
+    background: #4752c4;
+}
+
+.appeal-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.appeal-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* BAN Badge */
+.badge-banned {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgba(237, 66, 69, 0.2);
+    border: 1px solid #ed4245;
+    border-radius: 4px;
+    color: #ed4245;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-left: 6px;
+}
+
+.badge-banned::before {
+    content: '🚫';
+    font-size: 12px;
+}
+
+/* Support Chat Block */
+.support-chat-blocked {
+    padding: 20px;
+    background: rgba(250, 168, 26, 0.1);
+    border: 2px solid #faa81a;
+    border-radius: 12px;
+    text-align: center;
+    margin: 16px;
+}
+
+.support-chat-blocked-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.support-chat-blocked-text {
+    color: #faa81a;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.6;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .banned-content {
+        padding: 32px 24px;
+        max-width: 90%;
+    }
+    
+    .banned-actions {
+        flex-direction: column;
+    }
+    
+    .banned-btn {
+        width: 100%;
+    }
+    
+    .appeal-content {
+        width: 95%;
+    }
+}

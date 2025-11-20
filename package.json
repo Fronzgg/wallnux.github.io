@@ -1,0 +1,149 @@
+{
+  "name": "wallnux-messenger",
+  "version": "1.0.0",
+  "description": "WallNux Messenger - Desktop application with built-in Node.js server",
+  "main": "electron-main-simple.js",
+  "chromium-args": "--mixed-context",
+  "window": {
+    "title": "WallNux Messenger",
+    "width": 1400,
+    "height": 900,
+    "min_width": 1000,
+    "min_height": 600,
+    "position": "center",
+    "resizable": true,
+    "show": true,
+    "frame": true
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "electron": "electron .",
+    "electron-dev": "set NODE_ENV=development && electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:win64": "electron-builder --win --x64",
+    "build:win32": "electron-builder --win --ia32",
+    "dist": "electron-builder --win --x64 --ia32",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "nw": "nw .",
+    "nw:build": "nwbuild --mode=build --version=latest --flavor=normal --platform=win64 --srcDir=. --outDir=build"
+  },
+  "keywords": [
+    "discord",
+    "chat",
+    "webrtc",
+    "socketio",
+    "video-call",
+    "screen-sharing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@tauri-apps/api": "^2.9.0",
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "gun": "^0.2020.1241",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "nodejs-mobile-cordova": "^0.4.3",
+    "peerjs": "^1.5.5",
+    "simple-peer": "^9.11.1",
+    "socket.io": "^4.6.1",
+    "sqlite3": "^5.1.7",
+    "webtorrent": "^2.8.4"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
+    "electron": "^27.3.11",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
+    "electron-updater": "^6.6.2",
+    "javascript-obfuscator": "^4.1.1",
+    "nodemon": "^3.0.1",
+    "nw-builder": "^4.16.0"
+  },
+  "build": {
+    "appId": "com.wallnux.messenger",
+    "productName": "WallNux Messenger",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "**/*",
+      "!dist/**/*",
+      "!node_modules/**/*",
+      "!.git/**/*",
+      "!.vscode/**/*",
+      "!*.md",
+      "!build-*.bat",
+      "!test-*.bat",
+      "!clean-*.bat",
+      "!fix-*.bat",
+      "!obfuscate*.bat",
+      "!prepare-*.bat",
+      "start-wallnux.bat",
+      "start-wallnux-silent.vbs"
+    ],
+    "asar": false,
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "publisherName": "WallNux",
+      "verifyUpdateCodeSignature": false,
+      "sign": null,
+      "signingHashAlgorithms": []
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WallNux Messenger",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": true,
+      "runAfterFinish": true,
+      "menuCategory": true,
+      "include": "installer-script.nsh"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.social-networking"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Network"
+    }
+  }
+}
