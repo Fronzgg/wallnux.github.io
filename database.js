@@ -91,11 +91,21 @@ function initializeDatabase() {
                 message_type TEXT DEFAULT 'text',
                 media_data TEXT,
                 read BOOLEAN DEFAULT 0,
+                edited BOOLEAN DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (sender_id) REFERENCES users(id),
                 FOREIGN KEY (receiver_id) REFERENCES users(id)
             )
         `);
+
+        // Добавить колонку edited если её нет (миграция)
+        db.run(`
+            ALTER TABLE direct_messages ADD COLUMN edited BOOLEAN DEFAULT 0
+        `, (err) => {
+            if (err && !err.message.includes('duplicate column')) {
+                // Игнорируем ошибку если колонка уже существует
+            }
+        });
 
         // File uploads table
         db.run(`
@@ -252,6 +262,19 @@ function initializeDatabase() {
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (ban_id) REFERENCES user_bans(id),
                 FOREIGN KEY (reviewed_by) REFERENCES users(id)
+            )
+        `);
+
+        // Blocked users table
+        db.run(`
+            CREATE TABLE IF NOT EXISTS blocked_users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                blocked_user_id INTEGER NOT NULL,
+                blocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (blocked_user_id) REFERENCES users(id),
+                UNIQUE(user_id, blocked_user_id)
             )
         `);
 
@@ -455,6 +478,26 @@ const messageDB = {
                 }
             });
         });
+    },
+
+    update: (messageId, newContent) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'UPDATE messages SET content = ?, edited = 1 WHERE id = ?';
+            db.run(sql, [newContent, messageId], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
+        });
+    },
+
+    delete: (messageId) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM messages WHERE id = ?';
+            db.run(sql, [messageId], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
+        });
     }
 };
 
@@ -508,6 +551,36 @@ const dmDB = {
             db.run(sql, [messageId], (err) => {
                 if (err) reject(err);
                 else resolve();
+            });
+        });
+    },
+
+    update: (messageId, newContent) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'UPDATE direct_messages SET content = ?, edited = 1 WHERE id = ?';
+            db.run(sql, [newContent, messageId], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
+        });
+    },
+
+    delete: (messageId) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM direct_messages WHERE id = ?';
+            db.run(sql, [messageId], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
+        });
+    },
+
+    deleteConversation: (userId1, userId2) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM direct_messages WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)';
+            db.run(sql, [userId1, userId2, userId2, userId1], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
             });
         });
     }
@@ -997,6 +1070,53 @@ const adminDB = {
     }
 };
 
+// Blocked users operations
+const blockDB = {
+    block: (userId, blockedUserId) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'INSERT OR IGNORE INTO blocked_users (user_id, blocked_user_id) VALUES (?, ?)';
+            db.run(sql, [userId, blockedUserId], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
+        });
+    },
+
+    unblock: (userId, blockedUserId) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'DELETE FROM blocked_users WHERE user_id = ? AND blocked_user_id = ?';
+            db.run(sql, [userId, blockedUserId], function(err) {
+                if (err) reject(err);
+                else resolve({ changes: this.changes });
+            });
+        });
+    },
+
+    isBlocked: (userId, blockedUserId) => {
+        return new Promise((resolve, reject) => {
+            const sql = 'SELECT * FROM blocked_users WHERE user_id = ? AND blocked_user_id = ?';
+            db.get(sql, [userId, blockedUserId], (err, row) => {
+                if (err) reject(err);
+                else resolve(!!row);
+            });
+        });
+    },
+
+    getBlockedUsers: (userId) => {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT u.* FROM users u
+                JOIN blocked_users b ON u.id = b.blocked_user_id
+                WHERE b.user_id = ?
+            `;
+            db.all(sql, [userId], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    }
+};
+
 module.exports = {
     initializeDatabase,
     userDB,
@@ -1008,5 +1128,6 @@ module.exports = {
     serverDB,
     channelDB,
     nitroDB,
-    adminDB
+    adminDB,
+    blockDB
 };

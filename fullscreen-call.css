@@ -1,0 +1,175 @@
+/* Полноэкранный режим звонка */
+.fullscreen-call-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Главное видео */
+.fullscreen-main-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Мини-профиль внизу */
+.fullscreen-mini-profile {
+    position: absolute;
+    bottom: 100px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    animation: slideInLeft 0.3s ease;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.mini-profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.mini-profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mini-profile-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.mini-profile-status {
+    color: #b9bbbe;
+    font-size: 12px;
+}
+
+/* Кнопки управления */
+.fullscreen-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    animation: slideInUp 0.3s ease;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.fullscreen-control-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: none;
+    background: #4e5058;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.fullscreen-control-btn:hover {
+    background: #5865f2;
+    transform: scale(1.1);
+}
+
+.fullscreen-control-btn.danger {
+    background: #ed4245;
+}
+
+.fullscreen-control-btn.danger:hover {
+    background: #c03537;
+}
+
+.fullscreen-control-btn.muted {
+    background: #ed4245;
+}
+
+.fullscreen-control-btn.disabled {
+    background: #ed4245;
+    opacity: 0.7;
+}
+
+/* Адаптация для мобильных */
+@media (max-width: 768px) {
+    .fullscreen-mini-profile {
+        bottom: 80px;
+        left: 10px;
+        padding: 8px 12px;
+    }
+    
+    .mini-profile-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+    
+    .mini-profile-name {
+        font-size: 12px;
+    }
+    
+    .mini-profile-status {
+        font-size: 10px;
+    }
+    
+    .fullscreen-controls {
+        bottom: 10px;
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .fullscreen-control-btn {
+        width: 40px;
+        height: 40px;
+    }
+}

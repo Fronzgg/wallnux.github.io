@@ -1,5 +1,7 @@
 // Service Worker для PWA
-const CACHE_NAME = 'wallnux-v1';
+const CACHE_NAME = 'wallnux-v2'; // Увеличили версию!
+const DEV_MODE = true; // РЕЖИМ РАЗРАБОТКИ - отключает кэш
+
 const urlsToCache = [
   '/',
   '/index.html',
@@ -24,48 +26,85 @@ const urlsToCache = [
 
 // Установка Service Worker
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-  );
+  console.log('🔧 Service Worker installing...');
+  
+  // Пропустить ожидание и сразу активироваться
+  self.skipWaiting();
+  
+  if (DEV_MODE) {
+    console.log('⚠️ DEV MODE: Кэширование отключено');
+    event.waitUntil(Promise.resolve());
+  } else {
+    event.waitUntil(
+      caches.open(CACHE_NAME)
+        .then(cache => {
+          console.log('✅ Cache opened');
+          return cache.addAll(urlsToCache);
+        })
+    );
+  }
 });
 
 // Активация Service Worker
 self.addEventListener('activate', event => {
+  console.log('✅ Service Worker activated');
+  
+  // Сразу взять контроль над всеми клиентами
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
+    clients.claim().then(() => {
+      // Удалить все старые кэши
+      return caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('🗑️ Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      });
     })
   );
 });
 
 // Обработка запросов
 self.addEventListener('fetch', event => {
+  // В режиме разработки - всегда загружать из сети
+  if (DEV_MODE) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Добавляем заголовки для отключения кэша
+          const newHeaders = new Headers(response.headers);
+          newHeaders.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+          
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: newHeaders
+          });
+        })
+        .catch(error => {
+          console.error('❌ Fetch error:', error);
+          return new Response('Network error', { status: 503 });
+        })
+    );
+    return;
+  }
+  
+  // В продакшене - использовать кэш
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Возвращаем из кэша если есть
         if (response) {
           return response;
         }
         
-        // Иначе загружаем из сети
         return fetch(event.request).then(response => {
-          // Проверяем что ответ валидный
           if (!response || response.status !== 200 || response.type !== 'basic') {
             return response;
           }
           
-          // Клонируем ответ
           const responseToCache = response.clone();
           
           caches.open(CACHE_NAME).then(cache => {

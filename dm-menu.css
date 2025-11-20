@@ -1,0 +1,57 @@
+/* Меню для ЛС */
+.dm-context-menu {
+    position: fixed;
+    background: #18191c;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    padding: 6px;
+    min-width: 200px;
+    z-index: 10000;
+    animation: menuFadeIn 0.15s ease;
+}
+
+/* Заблокированный пользователь */
+.blocked-user {
+    opacity: 0.5;
+    /* НЕ блокируем pointer-events чтобы работал ПКМ */
+}
+
+.blocked-user:hover {
+    opacity: 0.7;
+    cursor: pointer;
+}
+
+.blocked-user .friend-status.blocked {
+    color: #ed4245 !important;
+}
+
+/* Статус "был давно" */
+.status-long-ago {
+    color: #72767d !important;
+}
+
+.status-indicator.blocked {
+    background: #ed4245 !important;
+}
+
+/* Заблокированный placeholder */
+.blocked-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    background: #72767d;
+    border-radius: 50%;
+}
+
+/* Скрытый аватар в сообщениях */
+.message-avatar.blocked {
+    background: #72767d !important;
+}
+
+/* Скрытый баннер */
+.profile-view-banner.blocked {
+    background: #72767d !important;
+}

@@ -1,0 +1,146 @@
+/* Модальное окно добавления участника */
+
+.add-participant-search {
+    margin-bottom: 20px;
+}
+
+.add-participant-search input {
+    width: 100%;
+    padding: 12px 16px;
+    background: #2b2d31;
+    border: 1px solid #1e1f22;
+    border-radius: 8px;
+    color: #dbdee1;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.add-participant-search input:focus {
+    outline: none;
+    border-color: #5865f2;
+}
+
+.add-participant-search input::placeholder {
+    color: #80848e;
+}
+
+.add-participant-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.add-participant-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 8px;
+}
+
+.add-participant-item:hover {
+    background: #2b2d31;
+}
+
+.add-participant-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.add-participant-item.disabled:hover {
+    background: transparent;
+}
+
+.add-participant-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.add-participant-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.add-participant-info {
+    flex: 1;
+}
+
+.add-participant-name {
+    color: #dbdee1;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.add-participant-status {
+    color: #80848e;
+    font-size: 13px;
+}
+
+.add-participant-status.online {
+    color: #23a55a;
+}
+
+.add-participant-status.in-call {
+    color: #5865f2;
+}
+
+.add-participant-btn {
+    padding: 8px 16px;
+    background: #5865f2;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-participant-btn:hover {
+    background: #4752c4;
+}
+
+.add-participant-btn:disabled {
+    background: #4e5058;
+    cursor: not-allowed;
+}
+
+.add-participant-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #80848e;
+}
+
+.add-participant-empty svg {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* Кнопка добавления участника в звонке */
+#addParticipantBtn {
+    background: #248046;
+}
+
+#addParticipantBtn:hover {
+    background: #1a6334;
+}
+
+#addParticipantBtn.active {
+    background: #5865f2;
+}

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки - WallNux</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+    <div class="settings-container">
+        <!-- Сайдбар с категориями -->
+        <div class="settings-sidebar">
+            <div class="settings-header">
+                <button class="back-btn" onclick="window.location.href='index.html'">
+                    <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </button>
+                <h2>Настройки</h2>
+            </div>
+            
+            <div class="settings-categories">
+                <div class="settings-category active" data-category="account">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    <span>Мой аккаунт</span>
+                </div>
+                <div class="settings-category" data-category="privacy">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                    <span>Конфиденциальность</span>
+                </div>
+                <div class="settings-category" data-category="devices">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z"/></svg>
+                    <span>Устройства</span>
+                </div>
+                <div class="settings-category" data-category="accounts">
+                    <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M16 17v2H2v-2s0-4 7-4 7 4 7 4m-3.5-9.5A3.5 3.5 0 1 0 9 11a3.5 3.5 0 0 0 3.5-3.5m3.44 5.5A5.32 5.32 0 0 1 18 17v2h4v-2s0-3.63-6.06-4M15 4a3.39 3.39 0 0 0-1.93.59 5 5 0 0 1 0 5.82A3.39 3.39 0 0 0 15 11a3.5 3.5 0 0 0 0-7z"/></svg>
+                    <span>Аккаунты</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Контент настроек -->
+        <div class="settings-content">
+            <!-- Мой аккаунт -->
+            <div class="settings-section active" id="account-section">
+                <h1>Мой аккаунт</h1>
+                
+                <div class="settings-card">
+                    <h3>Смена пароля</h3>
+                    <form id="changePasswordForm">
+                        <div class="form-group">
+                            <label>Текущий пароль</label>
+                            <input type="password" id="currentPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Новый пароль</label>
+                            <input type="password" id="newPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Подтвердите пароль</label>
+                            <input type="password" id="confirmPassword" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Изменить пароль</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Конфиденциальность -->
+            <div class="settings-section" id="privacy-section">
+                <h1>Конфиденциальность и безопасность</h1>
+                
+                <div class="settings-card">
+                    <h3>Кто может писать в ЛС</h3>
+                    <select id="dmPrivacy" class="settings-select">
+                        <option value="all">Все пользователи</option>
+                        <option value="friends">Только друзья</option>
+                        <option value="none">Никто</option>
+                    </select>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Кто может звонить</h3>
+                    <select id="callPrivacy" class="settings-select">
+                        <option value="all">Все пользователи</option>
+                        <option value="friends">Только друзья</option>
+                        <option value="none">Никто</option>
+                    </select>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Статус онлайн</h3>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showOnlineStatus" checked>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">Показывать статус онлайн</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Устройства -->
+            <div class="settings-section" id="devices-section">
+                <h1>Устройства</h1>
+                
+                <div class="settings-card">
+                    <div class="card-header">
+                        <h3>Активные устройства</h3>
+                        <button class="btn-danger" onclick="resetAllSessions()">Сбросить все сеансы</button>
+                    </div>
+                    <div id="devicesList" class="devices-list">
+                        <div class="loading">Загрузка...</div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3>Добавить устройство</h3>
+                    <p class="card-description">Отсканируйте QR код или используйте код доступа для входа на другом устройстве</p>
+                    
+                    <div class="add-device-tabs">
+                        <button class="tab-btn active" data-tab="qr">QR код</button>
+                        <button class="tab-btn" data-tab="code">Код доступа</button>
+                    </div>
+
+                    <div class="tab-content active" id="qr-content">
+                        <div class="qr-container">
+                            <div id="deviceQRCode" class="qr-code-box"></div>
+                            <p class="qr-info">Отсканируйте этот QR код на другом устройстве</p>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="code-content">
+                        <div class="access-code-container">
+                            <div class="access-code-display" id="accessCodeDisplay">------</div>
+                            <p class="qr-info">Введите этот код на странице входа</p>
+                            <button class="btn-secondary" onclick="generateNewCode()">Обновить код</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Аккаунты -->
+            <div class="settings-section" id="accounts-section">
+                <h1>Управление аккаунтами</h1>
+                
+                <div class="settings-card">
+                    <h3>Сохраненные аккаунты</h3>
+                    <div id="savedAccountsList" class="saved-accounts-list">
+                        <!-- Список аккаунтов -->
+                    </div>
+                    <button class="btn-primary" onclick="addNewAccount()">
+                        <svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                        Добавить аккаунт
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="settings.js"></script>
+</body>
+</html>

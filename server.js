@@ -7,8 +7,18 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const cors = require('cors');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
-const { initializeDatabase, userDB, messageDB, dmDB, fileDB, reactionDB, friendDB, serverDB, channelDB, nitroDB, adminDB } = require('./database');
+const { initializeDatabase, userDB, messageDB, dmDB, fileDB, reactionDB, friendDB, serverDB, channelDB, nitroDB, adminDB, blockDB } = require('./database');
+const devicesSystem = require('./devices-system');
+
+// Обновить версию файлов при запуске
+try {
+    console.log('🔄 Обновление версии файлов...');
+    execSync('node update-version.js', { stdio: 'inherit' });
+} catch (error) {
+    console.log('⚠️ Не удалось обновить версию (файл может отсутствовать)');
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -678,6 +688,65 @@ app.delete('/api/friends/:friendId', authenticateToken, async (req, res) => {
     }
 });
 
+// Block user
+app.post('/api/users/block', authenticateToken, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        await blockDB.block(req.user.id, userId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Block user error:', error);
+        res.status(500).json({ error: 'Failed to block user' });
+    }
+});
+
+// Unblock user
+app.post('/api/users/unblock', authenticateToken, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        await blockDB.unblock(req.user.id, userId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Unblock user error:', error);
+        res.status(500).json({ error: 'Failed to unblock user' });
+    }
+});
+
+// Get blocked users
+app.get('/api/users/blocked', authenticateToken, async (req, res) => {
+    try {
+        const blocked = await blockDB.getBlockedUsers(req.user.id);
+        res.json(blocked);
+    } catch (error) {
+        console.error('Get blocked users error:', error);
+        res.status(500).json({ error: 'Failed to get blocked users' });
+    }
+});
+
+// Check if blocked by user
+app.get('/api/users/check-blocked/:userId', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        const isBlocked = await blockDB.isBlocked(userId, req.user.id);
+        res.json({ isBlocked });
+    } catch (error) {
+        console.error('Check blocked error:', error);
+        res.status(500).json({ error: 'Failed to check block status' });
+    }
+});
+
+// Delete DM chat
+app.delete('/api/dm/delete/:userId', authenticateToken, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.userId);
+        await dmDB.deleteConversation(req.user.id, userId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Delete DM error:', error);
+        res.status(500).json({ error: 'Failed to delete chat' });
+    }
+});
+
 // Store connected users
 const users = new Map();
 const rooms = new Map();
@@ -1075,6 +1144,140 @@ app.post('/api/ban/appeals/:id/review', authenticateToken, async (req, res) => {
     }
 });
 
+// ============================================
+// DEVICES & QR/CODE LOGIN API
+// ============================================
+
+// Генерация кода для входа (QR или 6-значный)
+app.post('/api/generate-login-code', authenticateToken, (req, res) => {
+    const { type } = req.body; // 'qr' или 'access'
+    
+    const code = type === 'qr' ? devicesSystem.generateQRCode() : devicesSystem.generateAccessCode();
+    
+    // Сохранить код с привязкой к пользователю
+    devicesSystem.loginCodes.set(code, {
+        userId: req.user.id,
+        timestamp: Date.now(),
+        type
+    });
+    
+    // Удалить код через 5 минут
+    setTimeout(() => {
+        devicesSystem.loginCodes.delete(code);
+    }, 300000);
+    
+    res.json({ code, expiresIn: 300000 });
+});
+
+// Проверка статуса кода входа
+app.get('/api/check-login-code/:code', (req, res) => {
+    const { code } = req.params;
+    
+    const codeData = devicesSystem.loginCodes.get(code);
+    
+    if (!codeData) {
+        return res.status(404).json({ success: false, error: 'Code not found or expired' });
+    }
+    
+    // Проверить не истек ли код
+    if (Date.now() - codeData.timestamp > 300000) {
+        devicesSystem.loginCodes.delete(code);
+        return res.status(410).json({ success: false, error: 'Code expired' });
+    }
+    
+    // Получить данные пользователя
+    userDB.get('SELECT id, username, email, avatar FROM users WHERE id = ?', [codeData.userId], (err, user) => {
+        if (err || !user) {
+            return res.status(500).json({ success: false, error: 'User not found' });
+        }
+        
+        // Создать токен
+        const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+        
+        // Удалить использованный код
+        devicesSystem.loginCodes.delete(code);
+        
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar
+            }
+        });
+    });
+});
+
+// Вход по коду доступа
+app.post('/api/login-by-code', (req, res) => {
+    const { code } = req.body;
+    
+    const codeData = devicesSystem.loginCodes.get(code);
+    
+    if (!codeData) {
+        return res.status(404).json({ error: 'Неверный код или код истек' });
+    }
+    
+    // Проверить не истек ли код
+    if (Date.now() - codeData.timestamp > 300000) {
+        devicesSystem.loginCodes.delete(code);
+        return res.status(410).json({ error: 'Код истек' });
+    }
+    
+    // Получить данные пользователя
+    userDB.get('SELECT id, username, email, avatar FROM users WHERE id = ?', [codeData.userId], (err, user) => {
+        if (err || !user) {
+            return res.status(500).json({ error: 'Пользователь не найден' });
+        }
+        
+        // Создать токен
+        const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '30d' });
+        
+        // Добавить устройство
+        const deviceInfo = devicesSystem.getDeviceInfo(req);
+        devicesSystem.addDevice(user.id, deviceInfo, token);
+        
+        // Удалить использованный код
+        devicesSystem.loginCodes.delete(code);
+        
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar
+            }
+        });
+    });
+});
+
+// Получить список устройств
+app.get('/api/devices', authenticateToken, (req, res) => {
+    const devices = devicesSystem.getUserDevices(req.user.id);
+    res.json(devices);
+});
+
+// Удалить устройство
+app.delete('/api/devices/:deviceId', authenticateToken, (req, res) => {
+    const { deviceId } = req.params;
+    const success = devicesSystem.removeDevice(req.user.id, deviceId);
+    
+    if (success) {
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: 'Device not found' });
+    }
+});
+
+// Сбросить все устройства
+app.post('/api/devices/reset-all', authenticateToken, (req, res) => {
+    devicesSystem.removeAllDevices(req.user.id);
+    res.json({ success: true });
+});
+
 // Socket.IO connection handling
 io.use((socket, next) => {
     console.log('🔐 Socket.IO authentication attempt');
@@ -1200,7 +1403,7 @@ io.on('connection', async (socket) => {
             const { receiverId, message } = data;
             const sender = await userDB.findById(socket.userId);
 
-            // Support voice messages and video circles
+            // Support voice messages, video circles, images, videos, and files
             let messageText = message.text || '';
             let messageType = message.type || 'text';
             let mediaData = null;
@@ -1215,6 +1418,12 @@ io.on('connection', async (socket) => {
                 messageText = '[Video Circle]';
                 mediaData = JSON.stringify({
                     videoUrl: message.videoUrl
+                });
+            } else if (message.type === 'image' || message.type === 'video' || message.type === 'file') {
+                mediaData = JSON.stringify({
+                    fileUrl: message.fileUrl,
+                    fileName: message.fileName,
+                    fileSize: message.fileSize
                 });
             }
             
@@ -1247,8 +1456,15 @@ io.on('connection', async (socket) => {
                 audioData: message.audioData || null,
                 duration: message.duration || null,
                 videoUrl: message.videoUrl || null,
+                fileUrl: message.fileUrl || null,
+                fileName: message.fileName || null,
+                fileSize: message.fileSize || null,
                 timestamp: new Date()
             };
+            
+            console.log('📤 Sending message payload:', messagePayload);
+            console.log('🔍 Type:', messagePayload.type);
+            console.log('🔍 FileUrl:', messagePayload.fileUrl);
 
             // Send to receiver
             const receiverSocket = Array.from(users.values())
@@ -1294,6 +1510,77 @@ io.on('connection', async (socket) => {
             io.emit('reaction-update', { messageId, reactions });
         } catch (error) {
             console.error('Reaction error:', error);
+        }
+    });
+
+    // Edit message
+    socket.on('edit-message', async (data) => {
+        try {
+            const { messageId, newText, channelId, dmUserId } = data;
+            
+            console.log('✏️ Edit message:', messageId, newText);
+            
+            // Обновить в базе данных
+            if (dmUserId) {
+                await dmDB.update(messageId, newText);
+            } else if (channelId) {
+                await messageDB.update(messageId, newText);
+            }
+            
+            // Broadcast to all users
+            if (dmUserId) {
+                const receiverSocket = Array.from(users.values()).find(u => u.id === dmUserId);
+                if (receiverSocket) {
+                    io.to(receiverSocket.socketId).emit('message-edited', {
+                        messageId,
+                        newText,
+                        edited: true
+                    });
+                }
+                socket.emit('message-edited', {
+                    messageId,
+                    newText,
+                    edited: true
+                });
+            } else if (channelId) {
+                io.emit('message-edited', {
+                    messageId,
+                    newText,
+                    edited: true,
+                    channelId
+                });
+            }
+        } catch (error) {
+            console.error('Edit message error:', error);
+        }
+    });
+
+    // Delete message
+    socket.on('delete-message', async (data) => {
+        try {
+            const { messageId, channelId, dmUserId } = data;
+            
+            console.log('🗑️ Delete message:', messageId);
+            
+            // Удалить из базы данных
+            if (dmUserId) {
+                await dmDB.delete(messageId);
+            } else if (channelId) {
+                await messageDB.delete(messageId);
+            }
+            
+            // Broadcast to all users
+            if (dmUserId) {
+                const receiverSocket = Array.from(users.values()).find(u => u.id === dmUserId);
+                if (receiverSocket) {
+                    io.to(receiverSocket.socketId).emit('message-deleted', { messageId });
+                }
+                socket.emit('message-deleted', { messageId });
+            } else if (channelId) {
+                io.emit('message-deleted', { messageId, channelId });
+            }
+        } catch (error) {
+            console.error('Delete message error:', error);
         }
     });
 
@@ -1466,6 +1753,63 @@ io.on('connection', async (socket) => {
             });
         
         socket.emit('group-call-participants', participants);
+    });
+    
+    // Leave group call
+    socket.on('leave-group-call', (data) => {
+        const { roomName } = data;
+        
+        if (rooms.has(roomName)) {
+            rooms.get(roomName).delete(socket.id);
+            
+            // Notify others
+            socket.to(roomName).emit('user-left-group-call', {
+                socketId: socket.id,
+                userId: socket.userId
+            });
+            
+            socket.leave(roomName);
+            
+            // If room is empty, delete it
+            if (rooms.get(roomName).size === 0) {
+                rooms.delete(roomName);
+            }
+        }
+    });
+    
+    // Create group call from DM
+    socket.on('create-group-call-from-dm', (data) => {
+        const { roomName, participants } = data;
+        
+        socket.join(roomName);
+        
+        if (!rooms.has(roomName)) {
+            rooms.set(roomName, new Set());
+        }
+        rooms.get(roomName).add(socket.id);
+        
+        console.log(`Group call created from DM: ${roomName}`);
+    });
+    
+    // Invite to group call
+    socket.on('invite-to-group-call', (data) => {
+        const { roomName, userId, invitedBy } = data;
+        
+        // Find user socket
+        const userSocket = Array.from(users.values()).find(u => u.id === userId);
+        
+        if (userSocket) {
+            // Send invitation
+            io.to(userSocket.socketId).emit('group-call-invitation', {
+                roomName,
+                invitedBy,
+                type: 'video'
+            });
+            
+            console.log(`Invitation sent to user ${userId} for room ${roomName}`);
+        } else {
+            console.log(`User ${userId} not found or offline`);
+        }
     });
 
     // Handle call initiation

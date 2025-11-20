@@ -17,6 +17,12 @@ let currentView = 'friends';
 let currentServerId = null;
 let currentDMUserId = null;
 
+// Сделать переменные доступными глобально для других скриптов
+window.currentUser = null;
+window.socket = null;
+window.currentChannel = 'general';
+window.currentDMUserId = null;
+
 // Проверка загрузки Socket.IO при загрузке скрипта
 console.log('📜 script.js loaded');
 console.log('🔌 Socket.IO available:', typeof io !== 'undefined');
@@ -39,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Парсинг данных пользователя
     try {
         currentUser = JSON.parse(userStr);
+        window.currentUser = currentUser; // Сделать доступным глобально
         if (!currentUser || !currentUser.id) {
             throw new Error('Invalid user data');
         }
@@ -165,6 +172,8 @@ function connectToSocketIO() {
         transports: ['websocket', 'polling']
     });
     
+    window.socket = socket; // Сделать доступным глобально
+    
     console.log('✅ Socket instance created');
     
     socket.on('connect', () => {
@@ -273,20 +282,51 @@ function connectToSocketIO() {
         
         // Group call handlers
         socket.on('group-call-started', (data) => {
+            console.log('📢 Групповой звонок начат:', data);
             const { channelId, channelName, type, startedBy, roomName } = data;
-            showGroupCallNotification(data);
+            
+            // Показать уведомление если это не мы начали
+            if (startedBy.id !== currentUser.id) {
+                showGroupCallNotification(data);
+            }
         });
         
         socket.on('user-joined-group-call', (data) => {
-            console.log('User joined group call:', data);
-            if (inCall) {
+            console.log('👤 Пользователь присоединился к групповому звонку:', data);
+            
+            // Добавить участника в список
+            if (typeof addGroupParticipant === 'function') {
+                addGroupParticipant(data.socketId, {
+                    id: data.userId,
+                    username: data.username,
+                    avatar: data.avatar,
+                    socketId: data.socketId,
+                    isLocal: false
+                });
+            }
+            
+            // Создать peer connection
+            if (inCall && currentGroupCall) {
                 createPeerConnection(data.socketId, true);
             }
         });
         
         socket.on('group-call-participants', (participants) => {
-            console.log('Group call participants:', participants);
+            console.log('👥 Участники группового звонка:', participants);
+            
             participants.forEach(participant => {
+                // Добавить участника
+                if (typeof addGroupParticipant === 'function') {
+                    addGroupParticipant(participant.socketId, {
+                        id: participant.id,
+                        username: participant.username,
+                        avatar: participant.avatar,
+                        socketId: participant.socketId,
+                        isLocal: false
+                    });
+                }
+                
+                // Создать peer connection
                 if (!peerConnections[participant.socketId]) {
                     createPeerConnection(participant.socketId, false);
                 }
@@ -294,7 +334,30 @@ function connectToSocketIO() {
         });
         
         socket.on('group-call-update', (data) => {
-            updateGroupCallParticipants(data.participants);
+            console.log('🔄 Обновление группового звонка:', data);
+            if (typeof updateGroupCallParticipants === 'function') {
+                updateGroupCallParticipants(data.participants);
+            }
+        });
+        
+        socket.on('user-left-group-call', (data) => {
+            console.log('👋 Пользователь покинул групповой звонок:', data);
+            
+            // Удалить участника
+            if (typeof removeGroupParticipant === 'function') {
+                removeGroupParticipant(data.socketId);
+            }
+            
+            // Закрыть peer connection
+            if (peerConnections[data.socketId]) {
+                peerConnections[data.socketId].close();
+                delete peerConnections[data.socketId];
+            }
+        });
+        
+        socket.on('group-call-invitation', (data) => {
+            console.log('📨 Приглашение в групповой звонок:', data);
+            showGroupCallInvitation(data);
         });
 
         socket.on('offer', async (data) => {
@@ -335,6 +398,10 @@ function connectToSocketIO() {
         });
         socket.on('new-dm', (data) => {
             console.log('Received DM:', data); // Debug
+            
+            // Добавить отправителя в список ЛС (если его там еще нет)
+            addUserToDMList(data.senderId);
+            
             if (data.senderId === currentDMUserId) {
                 addMessageToUI({
                     id: data.message.id,
@@ -346,6 +413,9 @@ function connectToSocketIO() {
                     audioData: data.message.audioData || null,
                     duration: data.message.duration || null,
                     videoUrl: data.message.videoUrl || null,
+                    fileUrl: data.message.fileUrl || null,
+                    fileName: data.message.fileName || null,
+                    fileSize: data.message.fileSize || null,
                     timestamp: data.message.timestamp
                 });
                 scrollToBottom();
@@ -353,9 +423,19 @@ function connectToSocketIO() {
         });
 
         socket.on('dm-sent', (data) => {
-            console.log('DM sent:', data); // Debug
+            console.log('📨 DM sent:', data);
+            console.log('🔍 Message data:', data.message);
+            console.log('🔍 Message type:', data.message.type);
+            console.log('🔍 File URL:', data.message.fileUrl);
+            console.log('🔍 Receiver ID:', data.receiverId, 'Current DM User:', currentDMUserId);
+            console.log('🔍 Match:', data.receiverId === currentDMUserId);
+            
+            // Добавить получателя в список ЛС (если его там еще нет)
+            addUserToDMList(data.receiverId);
+            
             if (data.receiverId === currentDMUserId) {
-                addMessageToUI({
+                console.log('✅ Добавляем сообщение в UI');
+                const messageToAdd = {
                     id: data.message.id,
                     userId: currentUser.id,
                     author: currentUser.username,
@@ -365,9 +445,16 @@ function connectToSocketIO() {
                     audioData: data.message.audioData || null,
                     duration: data.message.duration || null,
                     videoUrl: data.message.videoUrl || null,
+                    fileUrl: data.message.fileUrl || null,
+                    fileName: data.message.fileName || null,
+                    fileSize: data.message.fileSize || null,
                     timestamp: data.message.timestamp
-                });
+                };
+                console.log('📦 Prepared message:', messageToAdd);
+                addMessageToUI(messageToAdd);
                 scrollToBottom();
+            } else {
+                console.log('❌ Не добавляем - не тот чат');
             }
         });
 
@@ -425,6 +512,19 @@ function connectToSocketIO() {
             if (!peerConnections[data.from.socketId]) {
                 createPeerConnection(data.from.socketId, true);
             }
+            
+            // Показать кнопку добавления участника для звонков 1-на-1
+            if (typeof showAddParticipantButton === 'function') {
+                showAddParticipantButton();
+            }
+            
+            // Сохранить информацию о собеседнике
+            if (typeof window !== 'undefined') {
+                window.callRemoteUser = {
+                    id: data.from.id,
+                    username: data.from.username
+                };
+            }
         });
 
         socket.on('call-rejected', (data) => {
@@ -457,6 +557,35 @@ function connectToSocketIO() {
         // User status changed
         socket.on('user-status-changed', (data) => {
             updateUserStatusInUI(data.userId, data.status);
+        });
+        
+        // Message edited
+        socket.on('message-edited', (data) => {
+            console.log('✏️ Message edited event:', data);
+            const messageEl = document.querySelector(`[data-message-id="${data.messageId}"]`);
+            if (messageEl) {
+                const textEl = messageEl.querySelector('.message-text');
+                if (textEl) {
+                    textEl.textContent = data.newText;
+                    
+                    // Добавить метку "изменено"
+                    if (!textEl.querySelector('.message-edited')) {
+                        const editedLabel = document.createElement('span');
+                        editedLabel.className = 'message-edited';
+                        editedLabel.textContent = ' (изменено)';
+                        textEl.appendChild(editedLabel);
+                    }
+                }
+            }
+        });
+        
+        // Message deleted
+        socket.on('message-deleted', (data) => {
+            console.log('🗑️ Message deleted event:', data);
+            const messageEl = document.querySelector(`[data-message-id="${data.messageId}"]`);
+            if (messageEl) {
+                messageEl.remove();
+            }
         });
 }
 
@@ -508,18 +637,16 @@ function initializeFriendsTabs() {
         });
     });
     
-    const searchBtn = document.getElementById('searchUserBtn');
     const searchInput = document.getElementById('searchUserInput');
     
-    if (searchBtn) {
-        searchBtn.addEventListener('click', searchUsers);
-    }
-    
     if (searchInput) {
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+        // Поиск в реальном времени (как в Telegram)
+        let searchTimeout;
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
                 searchUsers();
-            }
+            }, 300); // Задержка 300мс для оптимизации
         });
     }
     
@@ -537,7 +664,11 @@ function switchFriendsTab(tabName) {
         'pending': 'friendsPending',
         'add': 'friendsAdd'
     };
-    document.getElementById(contentMap[tabName]).classList.add('active-tab');
+    
+    const targetElement = document.getElementById(contentMap[tabName]);
+    if (targetElement) {
+        targetElement.classList.add('active-tab');
+    }
     
     if (tabName === 'pending') {
         loadPendingRequests();
@@ -621,13 +752,8 @@ async function searchUsers() {
     const searchInput = document.getElementById('searchUserInput');
     const query = searchInput.value.trim();
     
-    console.log('🔍 Поиск пользователей:', query);
-    
     const resultsDiv = document.getElementById('searchResults');
-    if (!resultsDiv) {
-        console.error('❌ Элемент searchResults не найден!');
-        return;
-    }
+    if (!resultsDiv) return;
     
     if (!query) {
         resultsDiv.innerHTML = '';
@@ -636,18 +762,13 @@ async function searchUsers() {
     
     try {
         const authToken = localStorage.getItem('token');
-        if (!authToken) {
-            console.error('Токен не найден!');
-            return;
-        }
+        if (!authToken) return;
         
         const response = await fetch('/api/users', {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         
-        if (!response.ok) {
-            throw new Error('Server error');
-        }
+        if (!response.ok) throw new Error('Server error');
         
         const users = await response.json();
         const results = users.filter(u => 
@@ -655,7 +776,6 @@ async function searchUsers() {
             u.id !== currentUser.id
         );
         
-        console.log('✅ Найдено:', results.length);
         displaySearchResults(results);
     } catch (error) {
         console.error('Error searching users:', error);
@@ -664,6 +784,8 @@ async function searchUsers() {
 
 function displaySearchResults(users) {
     const resultsDiv = document.getElementById('searchResults');
+    if (!resultsDiv) return;
+    
     resultsDiv.innerHTML = '';
     
     if (users.length === 0) {
@@ -712,7 +834,6 @@ function displaySearchResults(users) {
             const username = messageBtn.dataset.username;
             const avatar = messageBtn.dataset.avatar;
             
-            console.log('💬 Открываем диалог с:', username);
             startDM(userId, username, avatar);
         });
         
@@ -1118,6 +1239,7 @@ function rejectCall(caller) {
 window.startDM = async function(friendId, friendUsername, friendAvatar) {
     currentView = 'dm';
     currentDMUserId = friendId;
+    window.currentDMUserId = friendId; // Обновить глобальную переменную
     currentServerId = null;
 
     document.getElementById('friendsView').style.display = 'none';
@@ -1157,6 +1279,7 @@ window.startDM = async function(friendId, friendUsername, friendAvatar) {
 function showFriendsView() {
     currentView = 'friends';
     currentDMUserId = null;
+    window.currentDMUserId = null; // Обновить глобальную переменную
     currentServerId = null;
 
     document.getElementById('friendsView').style.display = 'flex';
@@ -1190,31 +1313,155 @@ function showFriendsView() {
     }
 }
 
+// Кеш пользователей с которыми есть переписка
+let dmUsersCache = new Set();
+
 // Функция загрузки всех ЛС
 async function loadAllDMs() {
     try {
         const token = localStorage.getItem('token');
         if (!token) return;
         
-        console.log('📨 Loading DMs...');
-        
-        // Получаем список друзей
-        const friendsResponse = await fetch('/api/friends', {
+        // Получаем список всех пользователей
+        const usersResponse = await fetch('/api/users', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (!friendsResponse.ok) {
-            console.error('Failed to load friends for DM list');
-            return;
+        if (!usersResponse.ok) return;
+        
+        const allUsers = await usersResponse.json();
+        const currentUserId = currentUser.id;
+        
+        // Проверяем с кем есть переписка
+        const usersWithDMs = [];
+        for (const user of allUsers) {
+            if (user.id === currentUserId) continue;
+            
+            try {
+                const dmResponse = await fetch(`/api/dm/${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (dmResponse.ok) {
+                    const messages = await dmResponse.json();
+                    if (messages && messages.length > 0) {
+                        usersWithDMs.push(user);
+                        dmUsersCache.add(user.id);
+                    }
+                }
+            } catch (e) {
+                // Игнорируем ошибки
+            }
         }
         
-        const friends = await friendsResponse.json();
-        console.log('👥 Found friends:', friends.length);
+        populateDMList(usersWithDMs);
         
-        // Отображаем всех друзей в списке ЛС
-        populateDMList(friends);
+        // Пометить заблокированных пользователей
+        await markBlockedUsers();
     } catch (error) {
         console.error('Ошибка загрузки ЛС:', error);
+    }
+}
+
+// Пометить заблокированных пользователей в UI
+async function markBlockedUsers() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/users/blocked', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const blocked = await response.json();
+            blocked.forEach(user => {
+                const dmElement = document.querySelector(`[data-dm-id="${user.id}"]`);
+                if (dmElement) {
+                    dmElement.classList.add('blocked-user');
+                }
+                
+                // Применить статус и скрыть медиа
+                if (typeof window.hideBlockedUserMedia === 'function') {
+                    window.hideBlockedUserMedia(user.id);
+                }
+                if (typeof window.setBlockedStatus === 'function') {
+                    window.setBlockedStatus(user.id);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error marking blocked users:', error);
+    }
+}
+
+// Добавить пользователя в список ЛС (если его там еще нет)
+async function addUserToDMList(userId) {
+    if (dmUsersCache.has(userId)) return; // Уже есть в списке
+    
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch(`/api/users/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const user = await response.json();
+            dmUsersCache.add(userId);
+            
+            // Добавить в DOM
+            const dmList = document.getElementById('dmList');
+            if (!dmList) return;
+            
+            // Проверить что пользователя еще нет в списке
+            const existing = dmList.querySelector(`[data-dm-id="${userId}"]`);
+            if (existing) return;
+            
+            const dmItem = document.createElement('div');
+            dmItem.className = 'channel';
+            dmItem.setAttribute('data-dm-id', user.id);
+            
+            let avatarHTML = '';
+            if (user.avatar && (user.avatar.startsWith('http') || user.avatar.startsWith('/uploads'))) {
+                avatarHTML = `<div class="friend-avatar"><img src="${user.avatar}" alt="${user.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;"></div>`;
+            } else {
+                avatarHTML = `<div class="friend-avatar">${user.avatar || user.username.charAt(0).toUpperCase()}</div>`;
+            }
+            
+            let verifiedBadge = '';
+            if (user.badges && Array.isArray(user.badges)) {
+                if (user.badges.includes('verified') || user.badges.includes('team')) {
+                    verifiedBadge = '<span class="verified-badge" title="Официальный аккаунт">✓</span>';
+                }
+            }
+            
+            dmItem.innerHTML = `
+                ${avatarHTML}
+                <span>${user.username}${verifiedBadge}</span>
+            `;
+            dmItem.addEventListener('click', (e) => {
+                // Не открывать чат если заблокирован (но ПКМ работает)
+                if (dmItem.classList.contains('blocked-user')) {
+                    e.preventDefault();
+                    alert('Разблокируйте пользователя чтобы открыть чат (ПКМ → Разблокировать)');
+                    return;
+                }
+                startDM(user.id, user.username, user.avatar);
+            });
+            
+            // Добавить контекстное меню (ПКМ)
+            if (typeof window.addDMContextMenu === 'function') {
+                window.addDMContextMenu(dmItem, {
+                    id: user.id,
+                    username: user.username,
+                    avatar: user.avatar
+                });
+            }
+            
+            dmList.appendChild(dmItem);
+        }
+    } catch (error) {
+        console.error('Ошибка добавления пользователя в ЛС:', error);
     }
 }
 
@@ -1422,20 +1669,30 @@ function initializeMessageInput() {
     console.log('Message input initialized');
 }
 
-function sendMessage() {
-    console.log('sendMessage called');
-    
+async function sendMessage() {
     const messageInput = document.getElementById('messageInput');
-    if (!messageInput) {
-        console.error('Message input not found!');
-        return;
-    }
+    if (!messageInput) return;
     
     const text = messageInput.value.trim();
-    console.log('Message text:', text);
+    if (text === '') return;
     
-    if (text === '') {
-        console.log('Empty message, not sending');
+    // Проверить блокировку если это ЛС
+    if (currentView === 'dm' && currentDMUserId) {
+        const isBlocked = await checkIfBlockedBy(currentDMUserId);
+        if (isBlocked) {
+            alert('❌ Этот пользователь вас заблокировал');
+            return;
+        }
+    }
+    
+    // Проверить режим редактирования
+    if (messageInput.dataset.editingMessageId) {
+        editMessage(messageInput.dataset.editingMessageId, text);
+        messageInput.value = '';
+        delete messageInput.dataset.editingMessageId;
+        
+        const indicator = document.getElementById('editIndicator');
+        if (indicator) indicator.remove();
         return;
     }
 
@@ -1487,11 +1744,15 @@ function sendMessage() {
 }
 
 function addMessageToUI(message) {
+    console.log('🎨 addMessageToUI called with:', message);
+    console.log('🔍 Message type:', message.type);
+    console.log('🔍 Has fileUrl:', !!message.fileUrl);
+    
     const messagesContainer = document.getElementById('messagesContainer');
     if (!messagesContainer) return;
     
     const messageGroup = document.createElement('div');
-    messageGroup.className = 'message-group';
+    messageGroup.className = 'message-group message';
     messageGroup.setAttribute('data-message-id', message.id || Date.now());
     messageGroup.setAttribute('data-user-id', message.userId || message.id);
     
@@ -1520,8 +1781,13 @@ function addMessageToUI(message) {
     
     // Добавляем галочку если есть verified или team badge
     if (message.badges && Array.isArray(message.badges)) {
-        if (message.badges.includes('verified') || message.badges.includes('team')) {
-            author.innerHTML += '<span class="verified-badge" title="Официальный аккаунт"></span>';
+        console.log('🔍 Message badges:', message.badges);
+        const hasVerified = message.badges.some(b => 
+            b === 'verified' || b.id === 'verified' || b === 'team' || b.id === 'team'
+        );
+        console.log('🔍 Has verified:', hasVerified);
+        if (hasVerified) {
+            author.innerHTML += ' <span class="verified-badge" title="Официальный аккаунт">✓</span>';
         }
     }
     
@@ -1533,7 +1799,7 @@ function addMessageToUI(message) {
     header.appendChild(timestamp);
     content.appendChild(header);
     
-    // Handle voice messages
+    // Handle different message types
     if (message.type === 'voice' && message.audioData) {
         const voiceMessage = document.createElement('div');
         voiceMessage.className = 'voice-message';
@@ -1556,6 +1822,38 @@ function addMessageToUI(message) {
             </div>
         `;
         content.appendChild(videoCircle);
+    } else if (message.type === 'image' && message.fileUrl) {
+        // Отображение изображения
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'message-image-container';
+        imageContainer.innerHTML = `
+            <img src="${message.fileUrl}" alt="${message.text || 'Image'}" class="message-image" onclick="openImageModal('${message.fileUrl}')">
+            ${message.text && message.text !== message.fileName ? `<div class="message-text">${message.text}</div>` : ''}
+        `;
+        content.appendChild(imageContainer);
+    } else if (message.type === 'video' && message.fileUrl) {
+        // Отображение видео
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'message-video-container';
+        videoContainer.innerHTML = `
+            <video src="${message.fileUrl}" controls class="message-video"></video>
+            ${message.text && message.text !== message.fileName ? `<div class="message-text">${message.text}</div>` : ''}
+        `;
+        content.appendChild(videoContainer);
+    } else if (message.type === 'file' && message.fileUrl) {
+        // Отображение файла
+        const fileContainer = document.createElement('div');
+        fileContainer.className = 'message-file-container';
+        fileContainer.innerHTML = `
+            <a href="${message.fileUrl}" download="${message.fileName || 'file'}" class="message-file-link">
+                <svg width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/></svg>
+                <div class="file-info">
+                    <div class="file-name">${message.fileName || 'file'}</div>
+                    <div class="file-size">${formatFileSize(message.fileSize || 0)}</div>
+                </div>
+            </a>
+        `;
+        content.appendChild(fileContainer);
     } else {
         const text = document.createElement('div');
         text.className = 'message-text';
@@ -1575,10 +1873,58 @@ function addMessageToUI(message) {
     content.appendChild(reactionsContainer);
     content.appendChild(addReactionBtn);
     
+    // Добавить кнопку меню (3 точки) - показывается при наведении
+    if (typeof window.addMessageMenu === 'function') {
+        const menuBtn = window.addMessageMenu(messageGroup, {
+            id: message.id || Date.now(),
+            userId: message.userId,
+            text: message.text,
+            type: message.type
+        });
+        content.appendChild(menuBtn);
+    }
+    
+    // Добавить обработчик правой кнопки мыши
+    messageGroup.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (typeof window.showMessageContextMenu === 'function') {
+            window.showMessageContextMenu(e, {
+                id: message.id || Date.now(),
+                userId: message.userId,
+                text: message.text,
+                type: message.type
+            });
+        }
+    });
+    
     messageGroup.appendChild(avatar);
     messageGroup.appendChild(content);
     
     messagesContainer.appendChild(messageGroup);
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function openImageModal(imageUrl) {
+    const modal = document.createElement('div');
+    modal.className = 'image-modal';
+    modal.innerHTML = `
+        <div class="image-modal-overlay"></div>
+        <div class="image-modal-content">
+            <button class="image-modal-close">✕</button>
+            <img src="${imageUrl}" alt="Image">
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.querySelector('.image-modal-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('.image-modal-overlay').addEventListener('click', () => modal.remove());
 }
 
 function formatTimestamp(date) {
@@ -1799,11 +2145,11 @@ function initializeUserControls() {
 
 // Voice channel functions - call persists when switching views
 async function joinVoiceChannel(channelName) {
+    console.log('📞 joinVoiceChannel вызван, inCall:', inCall);
+    
     if (inCall) {
-        const callInterface = document.getElementById('callInterface');
-        if (callInterface.classList.contains('hidden')) {
-            callInterface.classList.remove('hidden');
-        }
+        console.log('⚠️ Уже в звонке, не показываем UI снова');
+        // НЕ показываем UI если уже в звонке - это может быть после завершения
         return;
     }
     
@@ -1815,6 +2161,7 @@ async function joinVoiceChannel(channelName) {
     
     const callInterface = document.getElementById('callInterface');
     callInterface.classList.remove('hidden');
+    callInterface.style.display = 'flex'; // Показать
     
     document.querySelector('.call-channel-name').textContent = channelName;
     
@@ -1902,11 +2249,28 @@ function leaveVoiceChannel(force = false) {
     }
 
     const callInterface = document.getElementById('callInterface');
-    callInterface.classList.add('hidden');
+    const callBubble = document.getElementById('callBubble');
+    
+    if (callInterface) {
+        callInterface.classList.add('hidden');
+    }
+    
+    // Также скрыть баббл если он открыт
+    if (callBubble) {
+        callBubble.classList.add('hidden');
+    }
 
     if (force) {
         const localVideo = document.getElementById('localVideo');
-        localVideo.srcObject = null;
+        const remoteVideo = document.getElementById('remoteVideo');
+        
+        if (localVideo) {
+            localVideo.srcObject = null;
+        }
+        if (remoteVideo) {
+            remoteVideo.srcObject = null;
+        }
+        
         isVideoEnabled = true;
         isAudioEnabled = true;
         updateCallButtons();
@@ -2019,6 +2383,11 @@ async function toggleScreenShare() {
         const localVideo = document.getElementById('localVideo');
         localVideo.srcObject = localStream;
         
+        // Выйти из полноэкранного режима
+        if (typeof window.exitFullscreenCall === 'function') {
+            window.exitFullscreenCall();
+        }
+        
         updateCallButtons();
     } else {
         try {
@@ -2053,6 +2422,11 @@ async function toggleScreenShare() {
                 ...localStream.getAudioTracks()
             ]);
             localVideo.srcObject = mixedStream;
+            
+            // Войти в полноэкранный режим
+            if (typeof window.enterFullscreenCall === 'function') {
+                window.enterFullscreenCall(mixedStream, 'screen');
+            }
             
             // Handle screen share ending
             screenTrack.addEventListener('ended', () => {
@@ -2185,6 +2559,9 @@ async function loadDMHistory(userId) {
                    audioData: mediaData?.audioData || null,
                    duration: mediaData?.duration || null,
                    videoUrl: mediaData?.videoUrl || null,
+                   fileUrl: mediaData?.fileUrl || null,
+                   fileName: mediaData?.fileName || null,
+                   fileSize: mediaData?.fileSize || null,
                    timestamp: message.created_at
                });
            });
@@ -2196,6 +2573,27 @@ async function loadDMHistory(userId) {
    }
 
    scrollToBottom();
+}
+
+// Проверка блокировки
+async function checkIfBlockedBy(userId) {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/users/check-blocked/${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            return data.isBlocked;
+        }
+        return false;
+    } catch (error) {
+        console.error('Error checking block status:', error);
+        return false;
+    }
 }
 
 console.log('Discord Clone initialized successfully!');
@@ -2239,9 +2637,25 @@ function populateDMList(friends) {
            ${avatarHTML}
            <span>${friend.username}${verifiedBadge}</span>
        `;
-       dmItem.addEventListener('click', () => {
+       dmItem.addEventListener('click', (e) => {
+           // Не открывать чат если заблокирован (но ПКМ работает)
+           if (dmItem.classList.contains('blocked-user')) {
+               e.preventDefault();
+               alert('Разблокируйте пользователя чтобы открыть чат (ПКМ → Разблокировать)');
+               return;
+           }
            startDM(friend.id, friend.username, friend.avatar);
        });
+       
+       // Добавить контекстное меню (ПКМ)
+       if (typeof window.addDMContextMenu === 'function') {
+           window.addDMContextMenu(dmItem, {
+               id: friend.id,
+               username: friend.username,
+               avatar: friend.avatar
+           });
+       }
+       
        dmList.appendChild(dmItem);
    });
 }
@@ -2316,20 +2730,35 @@ function createPeerConnection(remoteSocketId, isInitiator) {
 
     // Handle incoming remote stream
     pc.ontrack = (event) => {
-        console.log('Received remote track:', event.track.kind, 'Stream ID:', event.streams[0]?.id);
+        console.log('🎬 Received remote track:', event.track.kind, 'Stream ID:', event.streams[0]?.id);
+        console.log('🎬 Track state:', event.track.readyState, 'enabled:', event.track.enabled);
+        console.log('🎬 From socketId:', remoteSocketId);
         
-        // Use Discord-style remote video element
-        let remoteVideo = document.getElementById('remoteVideo');
-        
-        if (!remoteVideo) {
-            console.error('Remote video element not found!');
+        if (!event.streams || !event.streams[0]) {
+            console.error('❌ No stream in track event');
             return;
         }
         
-        // Set the stream to the video element
-        if (event.streams && event.streams[0]) {
-            console.log('Setting remote stream to Discord video element');
-            remoteVideo.srcObject = event.streams[0];
+        const stream = event.streams[0];
+        console.log('📹 Stream tracks:', stream.getTracks().map(t => `${t.kind}: ${t.readyState}`));
+        
+        // Проверить это групповой звонок или обычный
+        if (currentGroupCall && typeof handleGroupParticipantStream === 'function') {
+            // Групповой звонок - передать в модуль групповых звонков
+            console.log('👥 Групповой звонок - обрабатываем поток участника');
+            handleGroupParticipantStream(remoteSocketId, stream);
+        } else {
+            // Обычный звонок 1-на-1 - использовать remoteVideo
+            console.log('👤 Обычный звонок - используем remoteVideo');
+            
+            let remoteVideo = document.getElementById('remoteVideo');
+            
+            if (!remoteVideo) {
+                console.error('❌ Remote video element not found!');
+                return;
+            }
+            
+            remoteVideo.srcObject = stream;
             
             // Show remote participant card
             const remoteCard = document.getElementById('remoteParticipantCard');
@@ -2339,19 +2768,43 @@ function createPeerConnection(remoteSocketId, isInitiator) {
             
             // Update video overlays when video loads
             remoteVideo.onloadedmetadata = () => {
-                console.log('Remote video metadata loaded');
+                console.log('✅ Remote video metadata loaded');
+                console.log('📺 Video dimensions:', remoteVideo.videoWidth, 'x', remoteVideo.videoHeight);
                 updateVideoOverlays();
+                
+                // Если это демонстрация экрана (большое разрешение), автоматически открыть полноэкранный режим
+                if (event.track.kind === 'video' && remoteVideo.videoWidth > 1280) {
+                    console.log('🖥️ Detected screen share, auto-opening fullscreen');
+                    setTimeout(() => {
+                        if (typeof window.enterFullscreenCall === 'function') {
+                            window.enterFullscreenCall(stream, 'screen');
+                        }
+                    }, 500);
+                }
             };
             
             // Ensure audio is playing
             remoteVideo.play().catch(e => {
-                console.error('Error playing remote video:', e);
-                // Try to play after user interaction
+                console.error('❌ Error playing remote video:', e);
                 document.addEventListener('click', () => {
                     remoteVideo.play().catch(err => console.error('Still cannot play:', err));
                 }, { once: true });
             });
         }
+        
+        // Логировать когда треки становятся активными (для всех типов звонков)
+        stream.getTracks().forEach(track => {
+            track.onended = () => {
+                console.log(`⚠️ Track ${track.kind} ended from ${remoteSocketId}`);
+                if (track.kind === 'video' && document.getElementById('fullscreenCallContainer')) {
+                    if (typeof window.exitFullscreenCall === 'function') {
+                        window.exitFullscreenCall();
+                    }
+                }
+            };
+            track.onmute = () => console.log(`🔇 Track ${track.kind} muted from ${remoteSocketId}`);
+            track.onunmute = () => console.log(`🔊 Track ${track.kind} unmuted from ${remoteSocketId}`);
+        });
     };
 
     // Create offer if initiator with modern constraints
@@ -3415,55 +3868,12 @@ window.playVoiceMessage = playVoiceMessage;
 // ============================================
 // GROUP CALLS (STREAMS) SYSTEM
 // ============================================
+// Функции групповых звонков теперь в group-call.js
+// Здесь только объявляем переменные для совместимости
 
 let currentGroupCall = null;
-let groupCallParticipants = [];
 
-function startGroupCall(channelId, channelName, type = 'video') {
-    if (!socket || !socket.connected) {
-        alert('Not connected to server');
-        return;
-    }
-    
-    currentGroupCall = {
-        channelId,
-        channelName,
-        type,
-        roomName: `group-call-${channelId || channelName}`
-    };
-    
-    socket.emit('start-group-call', {
-        channelId,
-        channelName,
-        type
-    });
-    
-    // Join the call
-    joinGroupCall(currentGroupCall.roomName, type);
-}
-
-function joinGroupCall(roomName, type = 'video') {
-    if (!socket || !socket.connected) return;
-    
-    socket.emit('join-group-call', { roomName });
-    
-    inCall = true;
-    isVideoEnabled = type === 'video';
-    isAudioEnabled = true;
-    
-    // Show call interface
-    const callInterface = document.getElementById('callInterface');
-    if (callInterface) {
-        callInterface.classList.remove('hidden');
-        document.querySelector('.call-channel-name').textContent = 'Group Call';
-    }
-    
-    // Initialize media
-    initializeMedia().catch(error => {
-        console.error('Error initializing media for group call:', error);
-    });
-}
-
+// Функция showGroupCallNotification для уведомлений
 function showGroupCallNotification(data) {
     const { channelName, type, startedBy } = data;
     
@@ -3478,15 +3888,17 @@ function showGroupCallNotification(data) {
                     <span>${startedBy.username?.charAt(0).toUpperCase() || 'U'}</span>
                     <div class="caller-avatar-pulse"></div>
                 </div>
-                <div class="caller-name-fullscreen">${startedBy.username} started a group call</div>
-                <div class="caller-status-fullscreen">in ${channelName}</div>
+                <div class="caller-name-fullscreen">${startedBy.username} начал групповой звонок</div>
+                <div class="caller-status-fullscreen">в ${channelName}</div>
             </div>
             <div class="incoming-call-actions-fullscreen">
                 <button class="call-action-btn-fullscreen reject" onclick="this.closest('.group-call-notification').remove()">
                     <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
+                    <span>Отклонить</span>
                 </button>
-                <button class="call-action-btn-fullscreen accept" onclick="joinGroupCall('${data.roomName}', '${type}'); this.closest('.group-call-notification').remove();">
+                <button class="call-action-btn-fullscreen accept" onclick="if(typeof joinGroupCall === 'function') joinGroupCall('${data.roomName}', '${type}'); this.closest('.group-call-notification').remove();">
                     <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                    <span>Присоединиться</span>
                 </button>
             </div>
         </div>
@@ -3502,28 +3914,71 @@ function showGroupCallNotification(data) {
     }, 30000);
 }
 
+// Функция updateGroupCallParticipants - заглушка, реальная логика в group-call.js
 function updateGroupCallParticipants(participants) {
-    groupCallParticipants = participants;
+    console.log('📋 updateGroupCallParticipants вызвана, участников:', participants.length);
+    // Реальная логика в group-call.js
+}
+
+// Показать приглашение в групповой звонок
+function showGroupCallInvitation(data) {
+    console.log('📨 Показываем приглашение в групповой звонок:', data);
     
-    // Update UI with participants
-    const remoteParticipants = document.getElementById('remoteParticipants');
-    if (!remoteParticipants) return;
+    const { roomName, invitedBy, type } = data;
     
-    // Clear existing
-    remoteParticipants.innerHTML = '';
-    
-    participants.forEach(participant => {
-        if (participant.socketId !== socket.id) {
-            const participantDiv = document.createElement('div');
-            participantDiv.className = 'participant';
-            participantDiv.id = `participant-${participant.socketId}`;
-            participantDiv.innerHTML = `
-                <video id="remote-${participant.socketId}" autoplay playsinline></video>
-                <div class="participant-name">${participant.username || 'User'}</div>
-            `;
-            remoteParticipants.appendChild(participantDiv);
+    // Функция для принятия приглашения
+    window.acceptGroupCallInvitation = function() {
+        console.log('✅ Принимаем приглашение в групповой звонок');
+        
+        // Удалить уведомление
+        const notification = document.querySelector('.incoming-call-fullscreen');
+        if (notification) {
+            notification.remove();
         }
-    });
+        
+        // Присоединиться к звонку
+        if (typeof joinGroupCall === 'function') {
+            joinGroupCall(roomName, type);
+        } else {
+            console.error('❌ joinGroupCall не найдена!');
+        }
+    };
+    
+    // Показать уведомление как входящий звонок
+    const notification = document.createElement('div');
+    notification.className = 'incoming-call-fullscreen';
+    notification.innerHTML = `
+        <div class="incoming-call-overlay"></div>
+        <div class="incoming-call-content-fullscreen">
+            <div class="caller-info-fullscreen">
+                <div class="caller-avatar-fullscreen">
+                    <span>${invitedBy.username?.charAt(0).toUpperCase() || 'U'}</span>
+                    <div class="caller-avatar-pulse"></div>
+                </div>
+                <div class="caller-name-fullscreen">${invitedBy.username}</div>
+                <div class="caller-status-fullscreen">приглашает вас в групповой звонок</div>
+            </div>
+            <div class="incoming-call-actions-fullscreen">
+                <button class="call-action-btn-fullscreen reject" onclick="this.closest('.incoming-call-fullscreen').remove()">
+                    <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M12 9C10.4 9 8.85 9.25 7.4 9.72V12.82C7.4 13.22 7.17 13.56 6.84 13.72C5.86 14.21 4.97 14.84 4.17 15.57C3.85 15.85 3.35 15.84 3.03 15.56L0.77 13.3C0.29 12.82 0.29 12.04 0.77 11.56C3.93 8.4 8.13 6.5 12 6.5C15.87 6.5 20.07 8.4 23.23 11.56C23.71 12.04 23.71 12.82 23.23 13.3L20.97 15.56C20.65 15.84 20.15 15.85 19.83 15.57C19.03 14.84 18.14 14.21 17.16 13.72C16.83 13.56 16.6 13.22 16.6 12.82V9.72C15.15 9.25 13.6 9 12 9Z"/></svg>
+                    <span>Отклонить</span>
+                </button>
+                <button class="call-action-btn-fullscreen accept" onclick="acceptGroupCallInvitation()">
+                    <svg width="32" height="32" viewBox="0 0 24 24"><path fill="currentColor" d="M20.01 15.38C18.78 15.38 17.59 15.18 16.48 14.82C16.13 14.7 15.74 14.79 15.47 15.06L13.9 17.03C11.07 15.68 8.42 13.13 7.01 10.2L8.96 8.54C9.23 8.26 9.31 7.87 9.2 7.52C8.83 6.41 8.64 5.22 8.64 3.99C8.64 3.45 8.19 3 7.65 3H4.19C3.65 3 3 3.24 3 3.99C3 13.28 10.73 21 20.01 21C20.72 21 21 20.37 21 19.82V16.37C21 15.83 20.55 15.38 20.01 15.38Z"/></svg>
+                    <span>Присоединиться</span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 30 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 30000);
 }
 
 // Simulate loading screen
@@ -3566,10 +4021,6 @@ function initAdaptiveLayout() {
         }, 250);
     });
 }
-
-// Make functions available globally
-window.startGroupCall = startGroupCall;
-window.joinGroupCall = joinGroupCall;
 
 // ============================================
 // DISCORD-STYLE CALL INTERFACE FUNCTIONS
@@ -3820,6 +4271,8 @@ function updateCallInfo(remoteUser) {
 
 // Минимизация звонка
 function minimizeCall() {
+    console.log('📦 Минимизация звонка...');
+    
     const callInterface = document.getElementById('callInterface');
     const callBubble = document.getElementById('callBubble');
     
@@ -3829,40 +4282,112 @@ function minimizeCall() {
         setTimeout(() => {
             callInterface.classList.add('hidden');
             callInterface.classList.remove('minimizing');
+            callInterface.style.display = 'none'; // Принудительно скрыть
+            
             callBubble.classList.remove('hidden');
-            callBubble.querySelector('.call-bubble-content').classList.add('active');
+            callBubble.style.display = 'flex'; // Показать баббл
+            const bubbleContent = callBubble.querySelector('.call-bubble-content');
+            if (bubbleContent) {
+                bubbleContent.classList.add('active');
+            }
+            console.log('✅ Звонок минимизирован');
         }, 300);
     }
 }
 
 // Развернуть звонок
 function expandCall() {
+    console.log('📤 Разворачивание звонка...');
+    
     const callInterface = document.getElementById('callInterface');
     const callBubble = document.getElementById('callBubble');
     
     if (callInterface && callBubble) {
+        // Скрыть баббл
         callBubble.classList.add('hidden');
+        callBubble.style.display = 'none'; // Принудительно скрыть
+        const bubbleContent = callBubble.querySelector('.call-bubble-content');
+        if (bubbleContent) {
+            bubbleContent.classList.remove('active');
+        }
+        
+        // Показать интерфейс
         callInterface.classList.remove('hidden');
+        callInterface.style.display = 'flex'; // Показать интерфейс
         callInterface.classList.add('expanding');
         
         setTimeout(() => {
             callInterface.classList.remove('expanding');
+            console.log('✅ Звонок развернут');
         }, 300);
     }
 }
 
-// Полноэкранный режим
+// Полноэкранный режим (новая версия)
 function toggleFullscreenCall() {
-    const callInterface = document.getElementById('callInterface');
+    // Проверить есть ли уже полноэкранный режим
+    const isInFullscreen = document.getElementById('fullscreenCallContainer');
     
-    if (callInterface) {
-        callInterface.classList.toggle('fullscreen');
-        
-        const btn = document.getElementById('fullscreenCallBtn');
-        if (btn) {
-            const isFullscreen = callInterface.classList.contains('fullscreen');
-            btn.title = isFullscreen ? 'Выйти из полноэкранного режима' : 'На весь экран';
+    if (isInFullscreen) {
+        // Выйти из полноэкранного режима
+        if (typeof window.exitFullscreenCall === 'function') {
+            window.exitFullscreenCall();
         }
+        return;
+    }
+    
+    // Найти активное видео для полноэкранного режима
+    let videoToShow = null;
+    let videoType = 'camera';
+    
+    // Приоритет: remote video (видео собеседника)
+    const remoteVideo = document.getElementById('remoteVideo');
+    if (remoteVideo && remoteVideo.srcObject) {
+        const videoTracks = remoteVideo.srcObject.getVideoTracks();
+        console.log('🎥 Remote video tracks:', videoTracks.length, videoTracks);
+        
+        if (videoTracks.length > 0 && videoTracks[0].enabled && videoTracks[0].readyState === 'live') {
+            videoToShow = remoteVideo.srcObject;
+            // Определить тип по размеру видео или другим признакам
+            const videoTrack = videoTracks[0];
+            if (videoTrack.getSettings) {
+                const settings = videoTrack.getSettings();
+                console.log('📹 Video settings:', settings);
+                // Если разрешение больше обычной камеры - скорее всего демонстрация
+                if (settings.width > 1280 || settings.height > 720) {
+                    videoType = 'screen';
+                }
+            }
+        }
+    }
+    
+    // Если нет remote video, использовать local video
+    if (!videoToShow) {
+        const localVideo = document.getElementById('localVideo');
+        if (localVideo && localVideo.srcObject) {
+            const videoTracks = localVideo.srcObject.getVideoTracks();
+            console.log('🎥 Local video tracks:', videoTracks.length, videoTracks);
+            
+            if (videoTracks.length > 0 && videoTracks[0].enabled && videoTracks[0].readyState === 'live') {
+                videoToShow = localVideo.srcObject;
+                videoType = screenStream ? 'screen' : 'camera';
+            }
+        }
+    }
+    
+    if (!videoToShow) {
+        console.error('❌ Нет активного видео для полноэкранного режима');
+        console.log('Remote video:', remoteVideo, 'srcObject:', remoteVideo?.srcObject);
+        console.log('Local video:', document.getElementById('localVideo'), 'srcObject:', document.getElementById('localVideo')?.srcObject);
+        alert('Нет активного видео для полноэкранного режима');
+        return;
+    }
+    
+    console.log('✅ Открываем полноэкранный режим:', videoType);
+    
+    // Войти в полноэкранный режим
+    if (typeof window.enterFullscreenCall === 'function') {
+        window.enterFullscreenCall(videoToShow, videoType);
     }
 }
 
@@ -3881,24 +4406,67 @@ function updateBubbleControls() {
 
 // Завершение звонка
 function endCall() {
+    console.log('🔴 Завершение звонка...');
+    console.log('📍 inCall до завершения:', inCall);
+    
+    // СНАЧАЛА сбрасываем флаг inCall чтобы предотвратить повторное показывание UI
+    inCall = false;
+    
     stopCallTimer();
     
     const callInterface = document.getElementById('callInterface');
     const callBubble = document.getElementById('callBubble');
     
+    console.log('📍 callInterface:', callInterface);
+    console.log('📍 callBubble:', callBubble);
+    
+    // Скрыть интерфейс звонка (агрессивно)
     if (callInterface) {
         callInterface.classList.add('hidden');
         callInterface.classList.remove('fullscreen');
+        callInterface.classList.remove('minimizing');
+        callInterface.classList.remove('expanding');
+        callInterface.style.display = 'none'; // Принудительно скрыть
+        console.log('✅ callInterface скрыт');
+    } else {
+        console.error('❌ callInterface не найден!');
     }
     
+    // Скрыть баббл (агрессивно)
     if (callBubble) {
         callBubble.classList.add('hidden');
+        callBubble.style.display = 'none'; // Принудительно скрыть
+        const bubbleContent = callBubble.querySelector('.call-bubble-content');
+        if (bubbleContent) {
+            bubbleContent.classList.remove('active');
+        }
+        console.log('✅ callBubble скрыт');
+    } else {
+        console.error('❌ callBubble не найден!');
+    }
+    
+    // Закрыть полноэкранный режим если открыт
+    if (typeof window.exitFullscreenCall === 'function') {
+        const fullscreenContainer = document.getElementById('fullscreenCallContainer');
+        if (fullscreenContainer) {
+            console.log('🖥️ Закрываем полноэкранный режим');
+            window.exitFullscreenCall();
+        }
     }
     
     // Вызываем существующую функцию завершения звонка
+    // inCall уже false, поэтому leaveVoiceChannel не будет ничего делать
+    // но мы все равно вызываем для очистки ресурсов
     leaveVoiceChannel(true);
     
     callRemoteUser = null;
+    
+    // Сбросить состояние добавления участников
+    if (typeof resetAddParticipantState === 'function') {
+        resetAddParticipantState();
+    }
+    
+    console.log('✅ Звонок завершен, inCall:', inCall);
 }
 
 // Переопределяем функцию initiateCall для использования нового интерфейса
@@ -3965,3 +4533,16 @@ if (document.readyState === 'loading') {
 }
 
 console.log('✨ Enhanced call interface initialized');
+
+
+// Редактирование сообщения
+function editMessage(messageId, newText) {
+    if (!socket || !socket.connected) return;
+    
+    socket.emit('edit-message', {
+        messageId: messageId,
+        newText: newText,
+        channelId: currentChannel || null,
+        dmUserId: currentDMUserId || null
+    });
+}

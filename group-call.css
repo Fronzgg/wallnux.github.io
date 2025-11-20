@@ -1,0 +1,495 @@
+/* Групповые звонки - Grid Layout */
+
+.group-call-grid {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    width: 100%;
+    height: 100%;
+    background: #1e1e1e;
+}
+
+/* Динамическая сетка в зависимости от количества участников */
+.group-call-grid.participants-1 {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+}
+
+.group-call-grid.participants-2 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+}
+
+.group-call-grid.participants-3,
+.group-call-grid.participants-4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.group-call-grid.participants-5,
+.group-call-grid.participants-6 {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.group-call-grid.participants-7,
+.group-call-grid.participants-8,
+.group-call-grid.participants-9 {
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+}
+
+/* Участник в сетке */
+.group-participant {
+    position: relative;
+    background: #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.group-participant:hover {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.5);
+}
+
+.group-participant.speaking {
+    box-shadow: 0 0 20px rgba(67, 181, 129, 0.8);
+    border: 2px solid #43b581;
+}
+
+.group-participant.screen-sharing {
+    border: 2px solid #5865f2;
+}
+
+.group-participant video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Информация об участнике */
+.group-participant-info {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.group-participant-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.group-participant-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.group-participant-name {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.group-participant-status {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.group-participant-status svg {
+    width: 16px;
+    height: 16px;
+}
+
+.group-participant-status .muted {
+    color: #ed4245;
+}
+
+.group-participant-status .video-off {
+    color: #ed4245;
+}
+
+.group-participant-status .screen-share {
+    color: #5865f2;
+}
+
+/* Аватар-заглушка когда видео выключено */
+.group-participant-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.group-participant-placeholder .avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 36px;
+    font-weight: 600;
+}
+
+/* Полноэкранный режим для группового звонка */
+.group-call-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #000;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+}
+
+.group-call-fullscreen-main {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+}
+
+.group-call-fullscreen-main video {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Миниатюры других участников */
+.group-call-thumbnails {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    max-width: 90%;
+    overflow-x: auto;
+}
+
+.group-call-thumbnail {
+    width: 120px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+    border: 2px solid transparent;
+}
+
+.group-call-thumbnail:hover {
+    transform: scale(1.05);
+    border-color: #5865f2;
+}
+
+.group-call-thumbnail.active {
+    border-color: #43b581;
+    box-shadow: 0 0 10px rgba(67, 181, 129, 0.5);
+}
+
+.group-call-thumbnail video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.group-call-thumbnail-name {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Контролы в полноэкранном режиме */
+.group-call-fullscreen-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+.group-call-fullscreen-controls button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.group-call-fullscreen-controls button:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: scale(1.1);
+}
+
+/* Индикатор говорящего */
+.speaking-indicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #43b581;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* Список участников (боковая панель) */
+.group-call-participants-list {
+    position: absolute;
+    top: 80px;
+    right: 20px;
+    width: 280px;
+    max-height: calc(100vh - 200px);
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 12px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.group-call-participants-list h3 {
+    color: white;
+    font-size: 16px;
+    margin: 0 0 12px 0;
+    font-weight: 600;
+}
+
+.group-call-participant-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: background 0.2s;
+}
+
+.group-call-participant-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.group-call-participant-item .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.group-call-participant-item .info {
+    flex: 1;
+}
+
+.group-call-participant-item .name {
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.group-call-participant-item .status {
+    color: #b9bbbe;
+    font-size: 12px;
+}
+
+/* Список участников в голосовом канале */
+.voice-participants {
+    padding: 4px 8px 4px 32px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.voice-participant-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.voice-participant-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.voice-participant-item.is-you {
+    background: rgba(88, 101, 242, 0.2);
+}
+
+.voice-participant-avatar-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #5865f2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.voice-participant-avatar-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.voice-participant-name {
+    color: #dcddde;
+    font-size: 13px;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.voice-participant-icons {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.voice-participant-icons svg {
+    width: 14px;
+    height: 14px;
+    color: #b9bbbe;
+}
+
+.voice-participant-icons .muted {
+    color: #ed4245;
+}
+
+.voice-participant-icons .video-off {
+    color: #ed4245;
+}
+
+.voice-participant-icons .screen-share {
+    color: #5865f2;
+}
+
+/* Кнопка присоединения */
+.voice-join-button {
+    margin: 4px 8px 8px 32px;
+    padding: 6px 12px;
+    background: #43b581;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: calc(100% - 40px);
+}
+
+.voice-join-button:hover {
+    background: #3ca374;
+}
+
+.voice-join-button:active {
+    background: #369968;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .group-call-thumbnails {
+        bottom: 10px;
+        gap: 5px;
+        padding: 5px;
+    }
+    
+    .group-call-thumbnail {
+        width: 80px;
+        height: 60px;
+    }
+    
+    .group-call-participants-list {
+        width: 240px;
+        right: 10px;
+        top: 60px;
+    }
+}

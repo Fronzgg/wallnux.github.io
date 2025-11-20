@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест нового поиска</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #36393f;
+            color: white;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { color: #5865f2; }
+        .search-box {
+            background: #2f3136;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 2px solid #5865f2;
+            border-radius: 4px;
+            background: #202225;
+            color: white;
+            box-sizing: border-box;
+        }
+        .result {
+            background: #2f3136;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .avatar {
+            width: 50px;
+            height: 50px;
+            background: #5865f2;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .info {
+            flex: 1;
+        }
+        .name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .status {
+            font-size: 14px;
+            color: #b9bbbe;
+        }
+        button {
+            background: #5865f2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover {
+            background: #4752c4;
+        }
+        .log {
+            background: #1e2124;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .success { color: #3ba55d; }
+        .error { color: #ed4245; }
+        .info-text { color: #5865f2; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Тест нового поиска (Telegram Style)</h1>
+    
+    <div class="search-box">
+        <h3>Поиск пользователей</h3>
+        <p style="color: #b9bbbe; margin-bottom: 15px;">Начните вводить имя - поиск автоматический</p>
+        <input type="text" id="searchInput" placeholder="Введите имя пользователя...">
+    </div>
+    
+    <div id="results"></div>
+    
+    <div class="log" id="log"></div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        let searchTimeout;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info-text';
+            logDiv.innerHTML += `<div class="${className}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        async function searchUsers() {
+            const query = document.getElementById('searchInput').value.trim();
+            
+            const resultsDiv = document.getElementById('results');
+            
+            if (!query) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+            
+            log(`🔍 Поиск: "${query}"`, 'info');
+            
+            if (!token) {
+                log('❌ Токен не найден! Войдите на главной странице.', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    log(`❌ Ошибка: ${response.status}`, 'error');
+                    return;
+                }
+                
+                const users = await response.json();
+                const currentUserId = JSON.parse(atob(token.split('.')[1])).id;
+                
+                const results = users.filter(u => 
+                    u.username.toLowerCase().includes(query.toLowerCase()) && 
+                    u.id !== currentUserId
+                );
+                
+                log(`✅ Найдено: ${results.length} пользователей`, 'success');
+                displayResults(results);
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+        
+        function displayResults(users) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+            
+            if (users.length === 0) {
+                resultsDiv.innerHTML = '<p style="text-align: center; color: #b9bbbe;">Пользователи не найдены</p>';
+                return;
+            }
+            
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'result';
+                
+                const verified = user.badges && (user.badges.includes('verified') || 
+                    (Array.isArray(user.badges) && user.badges.some(b => b.id === 'verified')));
+                
+                div.innerHTML = `
+                    <div class="avatar">${user.username.charAt(0).toUpperCase()}</div>
+                    <div class="info">
+                        <div class="name">
+                            ${user.username}
+                            ${verified ? '<span style="color: #5865f2;">✓</span>' : ''}
+                        </div>
+                        <div class="status">${user.status || 'Offline'}</div>
+                    </div>
+                    <button onclick="openChat(${user.id}, '${user.username}')">
+                        💬 Написать
+                    </button>
+                `;
+                
+                resultsDiv.appendChild(div);
+            });
+        }
+        
+        function openChat(userId, username) {
+            log(`💬 Открываем чат с: ${username}`, 'success');
+            alert(`Открываем чат с ${username}!\n\nНа главной странице это откроет диалог.`);
+        }
+        
+        // Поиск в реальном времени
+        document.getElementById('searchInput').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchUsers();
+            }, 300);
+        });
+        
+        log('✅ Страница загружена', 'success');
+        log(`Token: ${token ? '✅ Найден' : '❌ НЕ НАЙДЕН'}`, token ? 'success' : 'error');
+        
+        if (!token) {
+            log('⚠️ Сначала войдите на главной странице: http://localhost:3000', 'error');
+        }
+    </script>
+</body>
+</html>

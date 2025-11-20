@@ -1,0 +1,345 @@
+/* Кнопка меню сообщения (3 точки) */
+.message-menu-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 4px;
+    padding: 4px 6px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+}
+
+.message:hover .message-menu-btn {
+    opacity: 1;
+}
+
+.message-menu-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* Контекстное меню */
+.message-context-menu {
+    position: fixed;
+    background: #18191c;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    padding: 6px;
+    min-width: 200px;
+    z-index: 10000;
+    animation: menuFadeIn 0.15s ease;
+}
+
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #dcddde;
+    font-size: 14px;
+    transition: background 0.15s;
+}
+
+.menu-item:hover {
+    background: #4752c4;
+    color: #fff;
+}
+
+.menu-item.danger {
+    color: #ed4245;
+}
+
+.menu-item.danger:hover {
+    background: #ed4245;
+    color: #fff;
+}
+
+.menu-item svg {
+    flex-shrink: 0;
+}
+
+/* Индикатор редактирования */
+.edit-indicator {
+    background: #5865f2;
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: -8px;
+}
+
+.edit-indicator-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 13px;
+}
+
+.cancel-edit-btn {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.cancel-edit-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Пикер реакций */
+.reaction-picker {
+    position: fixed;
+    background: #18191c;
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    padding: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10000;
+    animation: menuFadeIn 0.15s ease;
+}
+
+.reaction-emoji {
+    background: none;
+    border: none;
+    font-size: 24px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.reaction-emoji:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.2);
+}
+
+/* Метка "изменено" */
+.message-edited {
+    font-size: 11px;
+    color: #72767d;
+    margin-left: 6px;
+}
+
+/* Сообщение с медиа */
+.message-media {
+    max-width: 400px;
+    margin-top: 8px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.message-media img {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.message-media img:hover {
+    opacity: 0.9;
+}
+
+.message-media video {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+/* Модальное окно превью медиа (как в Telegram) */
+.media-preview-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.media-preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+}
+
+.media-preview-content {
+    position: relative;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: #2f3136;
+    border-radius: 12px;
+    overflow: hidden;
+    animation: modalSlideUp 0.3s ease;
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.media-preview-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.media-preview-close:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.media-preview-gallery {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: auto;
+}
+
+.media-preview-item {
+    max-width: 100%;
+    max-height: 60vh;
+}
+
+.media-preview-item img,
+.media-preview-item video {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.media-preview-footer {
+    padding: 20px;
+    background: #202225;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.media-caption-input {
+    flex: 1;
+    background: #40444b;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: #dcddde;
+    font-size: 14px;
+    outline: none;
+    transition: background 0.2s;
+}
+
+.media-caption-input:focus {
+    background: #484c54;
+}
+
+.media-caption-input::placeholder {
+    color: #72767d;
+}
+
+.media-send-btn {
+    background: #5865f2;
+    border: none;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+
+.media-send-btn:hover {
+    background: #4752c4;
+}
+
+.media-send-btn:disabled {
+    background: #4752c4;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.media-send-btn .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Индикатор загрузки */
+.upload-indicator {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: #18191c;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1000;
+}

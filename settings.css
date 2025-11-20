@@ -1,0 +1,522 @@
+/* Настройки */
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1e1f22;
+    color: #dbdee1;
+}
+
+.settings-container {
+    display: flex;
+    height: 100vh;
+}
+
+.settings-sidebar {
+    width: 280px;
+    background: #2b2d31;
+    border-right: 1px solid #1e1f22;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-header {
+    padding: 20px;
+    border-bottom: 1px solid #1e1f22;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.back-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: #b9bbbe;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.settings-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.settings-categories {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.settings-category {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #b9bbbe;
+    margin-bottom: 4px;
+}
+
+.settings-category:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #dbdee1;
+}
+
+.settings-category.active {
+    background: #5865f2;
+    color: #fff;
+}
+
+.settings-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 60px;
+}
+
+.settings-section {
+    display: none;
+}
+
+.settings-section.active {
+    display: block;
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-section h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 30px 0;
+}
+
+.settings-card {
+    background: #2b2d31;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.settings-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 16px 0;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.card-header h3 {
+    margin: 0;
+}
+
+.card-description {
+    color: #b9bbbe;
+    font-size: 14px;
+    margin: 0 0 20px 0;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #b9bbbe;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 16px;
+    background: #1e1f22;
+    border: 1px solid #1e1f22;
+    border-radius: 8px;
+    color: #dbdee1;
+    font-size: 15px;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #5865f2;
+}
+
+.settings-select {
+    width: 100%;
+    padding: 12px 16px;
+    background: #1e1f22;
+    border: 1px solid #1e1f22;
+    border-radius: 8px;
+    color: #dbdee1;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    display: none;
+}
+
+.toggle-slider {
+    width: 44px;
+    height: 24px;
+    background: #4e5058;
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: all 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: #5865f2;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    left: 23px;
+}
+
+.toggle-label {
+    color: #dbdee1;
+    font-size: 15px;
+}
+
+.btn-primary, .btn-secondary, .btn-danger {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: #5865f2;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: #4752c4;
+}
+
+.btn-secondary {
+    background: #4e5058;
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background: #5d6169;
+}
+
+.btn-danger {
+    background: #ed4245;
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #c03537;
+}
+
+/* Устройства */
+.devices-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.device-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #1e1f22;
+    border-radius: 10px;
+}
+
+.device-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(88, 101, 242, 0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5865f2;
+}
+
+.device-info {
+    flex: 1;
+}
+
+.device-name {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.device-details {
+    color: #b9bbbe;
+    font-size: 13px;
+}
+
+.device-current {
+    padding: 4px 12px;
+    background: #248046;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 12px;
+}
+
+.device-remove {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid #ed4245;
+    border-radius: 6px;
+    color: #ed4245;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.device-remove:hover {
+    background: rgba(237, 66, 69, 0.1);
+}
+
+/* QR и код */
+.add-device-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: #1e1f22;
+    border: none;
+    border-radius: 8px;
+    color: #b9bbbe;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: #2b2d31;
+}
+
+.tab-btn.active {
+    background: #5865f2;
+    color: #fff;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.qr-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.qr-code-box {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 20px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-info {
+    color: #b9bbbe;
+    font-size: 14px;
+}
+
+.access-code-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.access-code-display {
+    font-size: 48px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 12px;
+    margin: 20px 0;
+    padding: 30px;
+    background: #1e1f22;
+    border-radius: 12px;
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+/* Сохраненные аккаунты */
+.saved-accounts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.saved-account-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #1e1f22;
+    border-radius: 10px;
+    position: relative;
+}
+
+.saved-account-card.current {
+    border: 2px solid #5865f2;
+}
+
+.account-avatar-large {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 600;
+    font-size: 24px;
+}
+
+.account-info-large {
+    flex: 1;
+}
+
+.account-name-large {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.account-email-large {
+    color: #b9bbbe;
+    font-size: 14px;
+}
+
+.account-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.account-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.switch-btn {
+    background: #5865f2;
+    color: #fff;
+}
+
+.switch-btn:hover {
+    background: #4752c4;
+}
+
+.remove-btn {
+    background: transparent;
+    border: 1px solid #ed4245;
+    color: #ed4245;
+}
+
+.remove-btn:hover {
+    background: rgba(237, 66, 69, 0.1);
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #72767d;
+}
+
+@media (max-width: 1024px) {
+    .settings-sidebar {
+        width: 240px;
+    }
+    
+    .settings-content {
+        padding: 30px 40px;
+    }
+}
+
+@media (max-width: 768px) {
+    .settings-container {
+        flex-direction: column;
+    }
+    
+    .settings-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #1e1f22;
+    }
+    
+    .settings-content {
+        padding: 20px;
+    }
+}
