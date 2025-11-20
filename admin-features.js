@@ -120,14 +120,14 @@ async function searchUsersForAdmin() {
         }
         
         const users = await response.json();
-        displaySearchResults(users);
+        displayAdminSearchResults(users);
     } catch (error) {
         console.error('Error searching users:', error);
         showCustomNotification('error', 'Ошибка', 'Не удалось найти пользователей');
     }
 }
 
-function displaySearchResults(users) {
+function displayAdminSearchResults(users) {
     const resultsDiv = document.getElementById('adminSearchResults');
     resultsDiv.innerHTML = '';
     
