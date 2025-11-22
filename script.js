@@ -2719,7 +2719,10 @@ function createPeerConnection(remoteSocketId, isInitiator) {
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' },
-            // Бесплатные публичные TURN серверы для пробивания NAT
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            
+            // Бесплатные публичные TURN серверы #1 (openrelay)
             {
                 urls: 'turn:openrelay.metered.ca:80',
                 username: 'openrelayproject',
@@ -2734,10 +2737,33 @@ function createPeerConnection(remoteSocketId, isInitiator) {
                 urls: 'turn:openrelay.metered.ca:443?transport=tcp',
                 username: 'openrelayproject',
                 credential: 'openrelayproject'
+            },
+            
+            // Бесплатные публичные TURN серверы #2 (numb.viagenie.ca)
+            {
+                urls: 'turn:numb.viagenie.ca',
+                username: 'webrtc@live.com',
+                credential: 'muazkh'
+            },
+            
+            // Бесплатные публичные TURN серверы #3 (stunserver.org)
+            {
+                urls: 'turn:turn.stunserver.org:3478',
+                username: 'free',
+                credential: 'free'
+            },
+            
+            // Бесплатные публичные TURN серверы #4 (relay1.expressturn.com)
+            {
+                urls: 'turn:relay1.expressturn.com:3478',
+                username: 'efKFNWZKE6Y8B24DYU',
+                credential: 'RoadTo100Subs'
             }
         ],
         iceCandidatePoolSize: 10,
-        iceTransportPolicy: 'all' // Использовать все доступные методы
+        iceTransportPolicy: 'all', // Использовать все доступные методы
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require'
     });
 
     peerConnections[remoteSocketId] = pc;
@@ -2767,25 +2793,49 @@ function createPeerConnection(remoteSocketId, isInitiator) {
     // Handle ICE candidates
     pc.onicecandidate = (event) => {
         if (event.candidate) {
-            console.log('Sending ICE candidate');
+            console.log('📡 Sending ICE candidate:', event.candidate.type, event.candidate.protocol);
+            console.log('   Address:', event.candidate.address || 'relay');
             socket.emit('ice-candidate', {
                 to: remoteSocketId,
                 candidate: event.candidate
             });
+        } else {
+            console.log('✅ All ICE candidates sent');
         }
     };
     
     // Handle connection state changes
     pc.oniceconnectionstatechange = () => {
-        console.log(`ICE connection state: ${pc.iceConnectionState}`);
+        console.log(`🔌 ICE connection state: ${pc.iceConnectionState}`);
+        
+        if (pc.iceConnectionState === 'checking') {
+            console.log('🔍 Checking ICE candidates...');
+        }
+        
+        if (pc.iceConnectionState === 'connected') {
+            console.log('✅ Peer connection established successfully!');
+            console.log('   Using:', pc.connectionState);
+        }
+        
         if (pc.iceConnectionState === 'failed') {
-            console.error('ICE connection failed');
+            console.error('❌ ICE connection failed - trying to restart...');
+            console.log('💡 Возможные причины:');
+            console.log('   - TURN серверы недоступны');
+            console.log('   - Firewall блокирует соединение');
+            console.log('   - Мобильный оператор блокирует WebRTC');
+            
             // Try to restart ICE
             pc.restartIce();
         }
-        if (pc.iceConnectionState === 'connected') {
-            console.log('Peer connection established successfully!');
+        
+        if (pc.iceConnectionState === 'disconnected') {
+            console.warn('⚠️ ICE connection disconnected');
         }
+    };
+    
+    // Логирование ICE gathering state
+    pc.onicegatheringstatechange = () => {
+        console.log(`📊 ICE gathering state: ${pc.iceGatheringState}`);
     };
 
     // Handle incoming remote stream
