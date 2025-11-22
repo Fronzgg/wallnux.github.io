@@ -189,6 +189,68 @@ app.post('/api/login', async (req, res) => {
             });
         }
         
+        // Проверка настроек безопасности
+        let settings = {};
+        try {
+            settings = JSON.parse(user.settings || '{}');
+        } catch (e) {}
+        
+        // Проверка облачного пароля
+        if (settings.cloudPasswordEnabled) {
+            return res.json({
+                requireCloudPassword: true,
+                userId: user.id
+            });
+        }
+        
+        // Проверка 2FA
+        if (settings.twoFactorEnabled) {
+            // Генерировать 6-значный код
+            const code2FA = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Сохранить код временно
+            if (!global.twoFACodes) global.twoFACodes = new Map();
+            global.twoFACodes.set(user.email, {
+                code: code2FA,
+                timestamp: Date.now()
+            });
+            
+            // Отправить код от WallNux Support
+            const supportBot = await userDB.findByUsername('WallNux Support');
+            if (supportBot) {
+                // Сохранить сообщение с кодом
+                await dmDB.create(supportBot.id, user.id, `Ваш код для входа: ${code2FA}\n\nКод действителен 5 минут.`, 'text');
+                
+                // Отправить через Socket.IO если пользователь онлайн
+                const userSocket = Array.from(users.values()).find(u => u.id === user.id);
+                if (userSocket) {
+                    io.to(userSocket.socketId).emit('new-dm', {
+                        senderId: supportBot.id,
+                        message: {
+                            id: Date.now(),
+                            author: 'WallNux Support',
+                            avatar: supportBot.avatar,
+                            text: `Ваш код для входа: ${code2FA}\n\nКод действителен 5 минут.`,
+                            type: 'text',
+                            timestamp: new Date().toISOString()
+                        }
+                    });
+                }
+            }
+            
+            // Удалить код через 5 минут
+            setTimeout(() => {
+                if (global.twoFACodes) {
+                    global.twoFACodes.delete(user.email);
+                }
+            }, 300000);
+            
+            return res.json({
+                require2FA: true,
+                userId: user.id
+            });
+        }
+        
         const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
         
         res.json({
@@ -1170,7 +1232,7 @@ app.post('/api/generate-login-code', authenticateToken, (req, res) => {
 });
 
 // Проверка статуса кода входа
-app.get('/api/check-login-code/:code', (req, res) => {
+app.get('/api/check-login-code/:code', async (req, res) => {
     const { code } = req.params;
     
     const codeData = devicesSystem.loginCodes.get(code);
@@ -1186,8 +1248,9 @@ app.get('/api/check-login-code/:code', (req, res) => {
     }
     
     // Получить данные пользователя
-    userDB.get('SELECT id, username, email, avatar FROM users WHERE id = ?', [codeData.userId], (err, user) => {
-        if (err || !user) {
+    try {
+        const user = await userDB.findById(codeData.userId);
+        if (!user) {
             return res.status(500).json({ success: false, error: 'User not found' });
         }
         
@@ -1207,28 +1270,32 @@ app.get('/api/check-login-code/:code', (req, res) => {
                 avatar: user.avatar
             }
         });
-    });
+    } catch (error) {
+        console.error('Check login code error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
 });
 
 // Вход по коду доступа
-app.post('/api/login-by-code', (req, res) => {
-    const { code } = req.body;
-    
-    const codeData = devicesSystem.loginCodes.get(code);
-    
-    if (!codeData) {
-        return res.status(404).json({ error: 'Неверный код или код истек' });
-    }
-    
-    // Проверить не истек ли код
-    if (Date.now() - codeData.timestamp > 300000) {
-        devicesSystem.loginCodes.delete(code);
-        return res.status(410).json({ error: 'Код истек' });
-    }
-    
-    // Получить данные пользователя
-    userDB.get('SELECT id, username, email, avatar FROM users WHERE id = ?', [codeData.userId], (err, user) => {
-        if (err || !user) {
+app.post('/api/login-by-code', async (req, res) => {
+    try {
+        const { code } = req.body;
+        
+        const codeData = devicesSystem.loginCodes.get(code);
+        
+        if (!codeData) {
+            return res.status(404).json({ error: 'Неверный код или код истек' });
+        }
+        
+        // Проверить не истек ли код
+        if (Date.now() - codeData.timestamp > 300000) {
+            devicesSystem.loginCodes.delete(code);
+            return res.status(410).json({ error: 'Код истек' });
+        }
+        
+        // Получить данные пользователя
+        const user = await userDB.findById(codeData.userId);
+        if (!user) {
             return res.status(500).json({ error: 'Пользователь не найден' });
         }
         
@@ -1251,7 +1318,10 @@ app.post('/api/login-by-code', (req, res) => {
                 avatar: user.avatar
             }
         });
-    });
+    } catch (error) {
+        console.error('Login by code error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 // Получить список устройств
@@ -1275,7 +1345,347 @@ app.delete('/api/devices/:deviceId', authenticateToken, (req, res) => {
 // Сбросить все устройства
 app.post('/api/devices/reset-all', authenticateToken, (req, res) => {
     devicesSystem.removeAllDevices(req.user.id);
+    
+    // Завершить все сеансы кроме текущего
+    const currentToken = req.headers['authorization'].split(' ')[1];
+    users.forEach((user, socketId) => {
+        if (user.id === req.user.id) {
+            const socket = io.sockets.sockets.get(socketId);
+            if (socket) {
+                // Проверить что это не текущий сокет
+                const socketToken = socket.handshake.auth.token;
+                if (socketToken !== currentToken) {
+                    socket.emit('force-logout', {
+                        reason: 'Все сеансы были сброшены'
+                    });
+                    setTimeout(() => socket.disconnect(true), 1000);
+                }
+            }
+        }
+    });
+    
     res.json({ success: true });
+});
+
+// Получить настройки пользователя
+app.get('/api/user/settings', authenticateToken, async (req, res) => {
+    try {
+        const user = await userDB.findById(req.user.id);
+        
+        // Парсим настройки из JSON или используем дефолтные
+        let settings = {
+            dmPrivacy: 'friends',
+            callPrivacy: 'friends',
+            showOnlineStatus: true
+        };
+        
+        if (user.settings) {
+            try {
+                settings = JSON.parse(user.settings);
+            } catch (e) {
+                console.error('Error parsing user settings:', e);
+            }
+        }
+        
+        res.json(settings);
+    } catch (error) {
+        console.error('Get settings error:', error);
+        res.status(500).json({ error: 'Failed to get settings' });
+    }
+});
+
+// Сохранить настройки пользователя
+app.post('/api/user/settings', authenticateToken, async (req, res) => {
+    try {
+        const { dmPrivacy, callPrivacy, showOnlineStatus } = req.body;
+        
+        const settings = {
+            dmPrivacy: dmPrivacy || 'friends',
+            callPrivacy: callPrivacy || 'friends',
+            showOnlineStatus: showOnlineStatus !== undefined ? showOnlineStatus : true
+        };
+        
+        await userDB.update(req.user.id, { 
+            settings: JSON.stringify(settings) 
+        });
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Save settings error:', error);
+        res.status(500).json({ error: 'Failed to save settings' });
+    }
+});
+
+// Смена пароля
+app.post('/api/user/change-password', authenticateToken, async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ error: 'Все поля обязательны' });
+        }
+        
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'Новый пароль должен быть минимум 6 символов' });
+        }
+        
+        // Получить пользователя
+        const user = await userDB.findById(req.user.id);
+        
+        // Проверить текущий пароль
+        const validPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!validPassword) {
+            return res.status(400).json({ error: 'Неверный текущий пароль' });
+        }
+        
+        // Хешировать новый пароль
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        
+        // Обновить пароль
+        await userDB.update(req.user.id, { password: hashedPassword });
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ error: 'Ошибка смены пароля' });
+    }
+});
+
+// Облачный пароль
+app.post('/api/user/cloud-password', authenticateToken, async (req, res) => {
+    try {
+        const { cloudPassword } = req.body;
+        
+        if (!cloudPassword || cloudPassword.length < 6) {
+            return res.status(400).json({ error: 'Облачный пароль должен быть минимум 6 символов' });
+        }
+        
+        const hashedCloudPassword = await bcrypt.hash(cloudPassword, 10);
+        
+        const user = await userDB.findById(req.user.id);
+        let settings = {};
+        try {
+            settings = JSON.parse(user.settings || '{}');
+        } catch (e) {}
+        
+        settings.cloudPassword = hashedCloudPassword;
+        settings.cloudPasswordEnabled = true;
+        
+        await userDB.update(req.user.id, { settings: JSON.stringify(settings) });
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Cloud password error:', error);
+        res.status(500).json({ error: 'Ошибка сохранения облачного пароля' });
+    }
+});
+
+app.post('/api/user/cloud-password/disable', authenticateToken, async (req, res) => {
+    try {
+        const user = await userDB.findById(req.user.id);
+        let settings = {};
+        try {
+            settings = JSON.parse(user.settings || '{}');
+        } catch (e) {}
+        
+        settings.cloudPasswordEnabled = false;
+        delete settings.cloudPassword;
+        
+        await userDB.update(req.user.id, { settings: JSON.stringify(settings) });
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Disable cloud password error:', error);
+        res.status(500).json({ error: 'Ошибка отключения облачного пароля' });
+    }
+});
+
+// 2FA
+app.post('/api/user/2fa/enable', authenticateToken, async (req, res) => {
+    try {
+        const user = await userDB.findById(req.user.id);
+        let settings = {};
+        try {
+            settings = JSON.parse(user.settings || '{}');
+        } catch (e) {}
+        
+        settings.twoFactorEnabled = true;
+        
+        await userDB.update(req.user.id, { settings: JSON.stringify(settings) });
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Enable 2FA error:', error);
+        res.status(500).json({ error: 'Ошибка включения 2FA' });
+    }
+});
+
+app.post('/api/user/2fa/disable', authenticateToken, async (req, res) => {
+    try {
+        const user = await userDB.findById(req.user.id);
+        let settings = {};
+        try {
+            settings = JSON.parse(user.settings || '{}');
+        } catch (e) {}
+        
+        settings.twoFactorEnabled = false;
+        
+        await userDB.update(req.user.id, { settings: JSON.stringify(settings) });
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Disable 2FA error:', error);
+        res.status(500).json({ error: 'Ошибка отключения 2FA' });
+    }
+});
+
+// Подтверждение QR входа
+app.post('/api/confirm-qr-login', authenticateToken, async (req, res) => {
+    try {
+        const { code } = req.body;
+        
+        const codeData = devicesSystem.loginCodes.get(code);
+        
+        if (!codeData) {
+            return res.status(404).json({ error: 'Код не найден или истек' });
+        }
+        
+        // Проверить что код принадлежит текущему пользователю
+        if (codeData.userId !== req.user.id) {
+            return res.status(403).json({ error: 'Неверный код' });
+        }
+        
+        // Код подтвержден - он будет использован при следующем запросе
+        codeData.confirmed = true;
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Confirm QR login error:', error);
+        res.status(500).json({ error: 'Ошибка подтверждения входа' });
+    }
+});
+
+// Проверка облачного пароля
+app.post('/api/verify-cloud-password', async (req, res) => {
+    try {
+        const { email, cloudPassword } = req.body;
+        
+        const user = await userDB.findByEmail(email);
+        if (!user) {
+            return res.status(404).json({ error: 'Пользователь не найден' });
+        }
+        
+        let settings = {};
+        try {
+            settings = JSON.parse(user.settings || '{}');
+        } catch (e) {}
+        
+        if (!settings.cloudPassword) {
+            return res.status(400).json({ error: 'Облачный пароль не установлен' });
+        }
+        
+        const validCloudPassword = await bcrypt.compare(cloudPassword, settings.cloudPassword);
+        if (!validCloudPassword) {
+            return res.status(400).json({ error: 'Неверный облачный пароль' });
+        }
+        
+        // Проверить 2FA если включена
+        if (settings.twoFactorEnabled) {
+            // Генерировать 6-значный код
+            const code2FA = Math.floor(100000 + Math.random() * 900000).toString();
+            
+            // Сохранить код временно
+            if (!global.twoFACodes) global.twoFACodes = new Map();
+            global.twoFACodes.set(user.email, {
+                code: code2FA,
+                timestamp: Date.now()
+            });
+            
+            // Отправить код от WallNux Support
+            const supportBot = await userDB.findByUsername('WallNux Support');
+            if (supportBot) {
+                await dmDB.create(supportBot.id, user.id, `Ваш код для входа: ${code2FA}\n\nКод действителен 5 минут.`, 'text');
+            }
+            
+            // Удалить код через 5 минут
+            setTimeout(() => {
+                if (global.twoFACodes) {
+                    global.twoFACodes.delete(user.email);
+                }
+            }, 300000);
+            
+            return res.json({ 
+                success: true,
+                require2FA: true 
+            });
+        }
+        
+        // Если 2FA не включена - вернуть токен
+        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+        
+        res.json({ 
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar || user.username.charAt(0).toUpperCase(),
+                badges: user.badges || '[]'
+            }
+        });
+    } catch (error) {
+        console.error('Verify cloud password error:', error);
+        res.status(500).json({ error: 'Ошибка проверки облачного пароля' });
+    }
+});
+
+// Проверка 2FA кода
+app.post('/api/verify-2fa', async (req, res) => {
+    try {
+        const { email, code } = req.body;
+        
+        if (!global.twoFACodes) {
+            return res.status(400).json({ error: 'Код не найден' });
+        }
+        
+        const savedCode = global.twoFACodes.get(email);
+        if (!savedCode) {
+            return res.status(400).json({ error: 'Код не найден или истек' });
+        }
+        
+        // Проверить что код не истек (5 минут)
+        if (Date.now() - savedCode.timestamp > 300000) {
+            global.twoFACodes.delete(email);
+            return res.status(400).json({ error: 'Код истек' });
+        }
+        
+        if (savedCode.code !== code) {
+            return res.status(400).json({ error: 'Неверный код' });
+        }
+        
+        // Удалить использованный код
+        global.twoFACodes.delete(email);
+        
+        // Вернуть токен
+        const user = await userDB.findByEmail(email);
+        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+        
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar || user.username.charAt(0).toUpperCase(),
+                badges: user.badges || '[]'
+            }
+        });
+    } catch (error) {
+        console.error('Verify 2FA error:', error);
+        res.status(500).json({ error: 'Ошибка проверки 2FA' });
+    }
 });
 
 // Socket.IO connection handling
@@ -1314,6 +1724,12 @@ io.on('connection', async (socket) => {
         
         // Update user status
         await userDB.updateStatus(socket.userId, 'Online');
+        
+        // Добавить устройство
+        const deviceInfo = devicesSystem.getDeviceInfo(socket.handshake);
+        const token = socket.handshake.auth.token;
+        devicesSystem.addDevice(socket.userId, deviceInfo, token);
+        console.log('📱 Device added for user:', socket.userId);
         
         io.emit('user-list-update', Array.from(users.values()));
     } catch (error) {
@@ -1929,7 +2345,36 @@ io.on('connection', async (socket) => {
             io.emit('user-list-update', Array.from(users.values()));
         }
     });
+    
+    // Завершение сеанса (принудительное)
+    socket.on('session-terminated', (data) => {
+        console.log('🚫 Сеанс завершен для пользователя:', socket.userId);
+        socket.emit('force-logout', {
+            reason: 'Сеанс завершен администратором или с другого устройства'
+        });
+        socket.disconnect(true);
+    });
 });
+
+// Функция для завершения всех сеансов пользователя кроме текущего
+function terminateUserSessions(userId, exceptSocketId) {
+    users.forEach((user, socketId) => {
+        if (user.id === userId && socketId !== exceptSocketId) {
+            const socket = io.sockets.sockets.get(socketId);
+            if (socket) {
+                socket.emit('force-logout', {
+                    reason: 'Все сеансы были сброшены'
+                });
+                socket.disconnect(true);
+            }
+        }
+    });
+}
+
+// Обновить endpoint сброса сеансов
+const originalResetAllHandler = app._router.stack.find(r => 
+    r.route && r.route.path === '/api/devices/reset-all'
+);
 
 // P2P Server API
 require('./p2p-server')(app, messageDB);

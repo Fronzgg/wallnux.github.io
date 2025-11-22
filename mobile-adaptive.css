@@ -1,0 +1,615 @@
+/* Адаптивный дизайн для мобильных устройств */
+
+/* Базовые настройки для мобильных */
+@media (max-width: 768px) {
+    /* Скрыть боковые панели по умолчанию */
+    .sidebar {
+        position: fixed;
+        left: -240px;
+        top: 0;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+    }
+
+    .sidebar.mobile-open {
+        left: 0;
+    }
+
+    .channels-sidebar {
+        position: fixed;
+        left: -200px;
+        top: 0;
+        height: 100vh;
+        z-index: 999;
+        transition: left 0.3s ease;
+    }
+
+    .channels-sidebar.mobile-open {
+        left: 60px;
+    }
+
+    /* Скрыть старую панель настроек */
+    .settings-panel {
+        display: none !important;
+    }
+
+    /* Список чатов - не трогать */
+
+    /* Меню пользователя */
+    .user-menu,
+    .profile-bubble {
+        position: fixed !important;
+        bottom: 70px !important;
+        right: 10px !important;
+        z-index: 1001 !important;
+    }
+
+    /* Основной контент на всю ширину */
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Мобильная шапка */
+    .mobile-header {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: #2f3136;
+        border-bottom: 1px solid #202225;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .mobile-menu-btn {
+        background: none;
+        border: none;
+        color: #b9bbbe;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .mobile-menu-btn:active {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+    }
+
+    .mobile-header-title {
+        flex: 1;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    /* Чат на мобильном */
+    .chat-container {
+        height: calc(100vh - 60px) !important;
+    }
+
+    .messages-container {
+        height: calc(100vh - 180px) !important;
+    }
+
+    /* Список друзей */
+    .friends-container {
+        padding: 12px !important;
+    }
+
+    .friend-item {
+        flex-direction: column;
+        align-items: flex-start !important;
+        padding: 12px !important;
+    }
+
+    .friend-actions {
+        margin-top: 12px;
+        width: 100%;
+        display: flex;
+        justify-content: space-around;
+    }
+
+    /* Профиль пользователя */
+    .user-panel {
+        padding: 8px !important;
+    }
+
+    .user-info {
+        display: none;
+    }
+
+    /* Звонки */
+    .call-interface {
+        width: 100% !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        position: fixed !important;
+    }
+
+    .call-controls {
+        bottom: 80px !important;
+        width: 100% !important;
+        justify-content: center !important;
+        gap: 20px !important;
+    }
+
+    .call-control-btn {
+        width: 56px !important;
+        height: 56px !important;
+        font-size: 24px !important;
+    }
+
+    .video-container {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    #localVideo,
+    #remoteVideo {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
+    /* Полноэкранный звонок */
+    .fullscreen-call {
+        width: 100% !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+    }
+
+    .fullscreen-video {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .fullscreen-controls {
+        bottom: 80px !important;
+    }
+
+    /* Модальные окна */
+    .modal-content,
+    .profile-modal-content {
+        width: 95% !important;
+        max-width: 95% !important;
+        margin: 10px !important;
+    }
+
+    /* Настройки */
+    .settings-modal-content {
+        width: 100% !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+    }
+
+    .settings-sidebar {
+        width: 100% !important;
+        border-right: none !important;
+        border-bottom: 1px solid #202225;
+        display: flex;
+        overflow-x: auto;
+        padding: 8px !important;
+    }
+
+    .settings-category {
+        white-space: nowrap;
+        margin: 0 4px !important;
+    }
+
+    .settings-content {
+        padding: 16px !important;
+    }
+
+    /* Поиск */
+    .search-container {
+        width: 100% !important;
+    }
+
+    /* Сообщения */
+    .message {
+        padding: 8px 12px !important;
+    }
+
+    .message-avatar {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 14px !important;
+    }
+
+    .message-content {
+        margin-left: 8px !important;
+    }
+
+    /* Поле ввода */
+    .message-input-container {
+        padding: 8px !important;
+    }
+
+    .message-input {
+        font-size: 14px !important;
+    }
+
+    /* Кнопки */
+    .control-btn {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    /* Вкладки друзей */
+    .friends-tabs {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+    }
+
+    .friends-tab {
+        white-space: nowrap;
+        min-width: auto;
+    }
+}
+
+/* Очень маленькие экраны (телефоны в портретной ориентации) */
+@media (max-width: 480px) {
+    .message-input-container {
+        flex-direction: column;
+    }
+
+    .message-input {
+        margin-bottom: 8px;
+    }
+
+    .input-actions {
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    /* Групповой звонок */
+    .group-call-participants {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Устройства */
+    .device-item {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .device-actions {
+        margin-top: 12px;
+        width: 100%;
+    }
+}
+
+/* Планшеты */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+        width: 60px !important;
+    }
+
+    .server-name {
+        display: none;
+    }
+
+    .channels-sidebar {
+        width: 180px !important;
+    }
+
+    .main-content {
+        margin-left: 240px !important;
+    }
+}
+
+/* Мобильная навигация */
+.mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #2f3136;
+    border-top: 1px solid #202225;
+    padding: 8px 0;
+    z-index: 1000;
+}
+
+@media (max-width: 768px) {
+    .mobile-nav {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .mobile-nav-btn {
+        background: none;
+        border: none;
+        color: #b9bbbe;
+        font-size: 24px;
+        padding: 8px 16px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .mobile-nav-btn.active {
+        color: #5865f2;
+    }
+
+    .mobile-nav-label {
+        font-size: 10px;
+    }
+
+    /* Отступ снизу для навигации */
+    .main-content {
+        padding-bottom: 60px !important;
+    }
+}
+
+/* Overlay для закрытия меню */
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+}
+
+.mobile-overlay.active {
+    display: block;
+}
+
+/* Touch-friendly элементы */
+@media (max-width: 768px) {
+    button,
+    .clickable {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    input,
+    textarea {
+        font-size: 16px !important; /* Предотвращает зум на iOS */
+    }
+}
+
+/* Скрыть элементы на мобильном */
+@media (max-width: 768px) {
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+/* Показать только на мобильном */
+.mobile-only {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: block !important;
+    }
+}
+
+/* Горизонтальная ориентация на телефонах */
+@media (max-width: 768px) and (orientation: landscape) {
+    .mobile-header {
+        padding: 8px 16px;
+    }
+
+    .messages-container {
+        height: calc(100vh - 140px) !important;
+    }
+
+    .mobile-nav {
+        padding: 4px 0;
+    }
+}
+
+/* Анимации для мобильного */
+@media (max-width: 768px) {
+    .sidebar,
+    .channels-sidebar {
+        transition: transform 0.3s ease;
+    }
+
+    .fade-in-mobile {
+        animation: fadeInMobile 0.3s ease;
+    }
+
+    @keyframes fadeInMobile {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+/* Улучшения для PWA */
+@media (display-mode: standalone) {
+    .mobile-header {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .mobile-nav {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+
+/* Дополнительные фиксы для мобильных */
+@media (max-width: 768px) {
+    /* Статусы пользователя */
+    .status-selector,
+    .user-status-menu {
+        position: fixed !important;
+        bottom: 70px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 90% !important;
+        max-width: 300px !important;
+        z-index: 1002 !important;
+    }
+
+    /* Список ЛС (Direct Messages) - не трогать */
+
+    /* Чат с пользователем */
+    .chat-view {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    /* Профиль пользователя (bubble) */
+    .profile-bubble {
+        width: 90% !important;
+        max-width: 320px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        bottom: 70px !important;
+    }
+
+    /* Модальное окно профиля */
+    .profile-modal {
+        padding: 0 !important;
+    }
+
+    .profile-modal-content {
+        width: 100% !important;
+        height: 100vh !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    /* Групповой звонок */
+    .group-call-interface {
+        width: 100% !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+    }
+
+    .group-call-participants {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+        gap: 8px !important;
+        padding: 8px !important;
+    }
+
+    .group-participant {
+        height: 200px !important;
+    }
+
+    /* Добавление участника */
+    .add-participant-modal .modal-content {
+        width: 95% !important;
+        max-height: 80vh !important;
+    }
+
+    /* Меню сообщения */
+    .message-menu {
+        position: fixed !important;
+        bottom: 70px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 90% !important;
+        max-width: 300px !important;
+    }
+
+    /* Меню ЛС */
+    .dm-menu {
+        position: fixed !important;
+        bottom: 70px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 90% !important;
+        max-width: 300px !important;
+    }
+
+    /* Emoji picker */
+    .emoji-picker {
+        position: fixed !important;
+        bottom: 70px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 90% !important;
+        max-width: 350px !important;
+        max-height: 400px !important;
+    }
+
+    /* Уведомления */
+    .notification,
+    .custom-notification {
+        width: 90% !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        top: 70px !important;
+    }
+
+    /* Поиск Telegram-style */
+    .telegram-search-overlay {
+        top: 60px !important;
+        height: calc(100vh - 60px) !important;
+    }
+
+    /* Бейджи */
+    .badge {
+        font-size: 10px !important;
+        padding: 2px 6px !important;
+    }
+
+    /* Серверы - оставить как есть */
+
+    /* Каналы и участники - не трогать */
+
+    /* Загрузка файлов */
+    .file-upload-preview {
+        width: 90% !important;
+        max-width: 350px !important;
+    }
+
+    /* Голосовое сообщение */
+    .voice-recorder {
+        width: 100% !important;
+        bottom: 70px !important;
+    }
+
+    /* Видео кружок */
+    .video-circle-recorder {
+        width: 100% !important;
+        height: 100vh !important;
+        top: 0 !important;
+        left: 0 !important;
+    }
+}
+
+/* Фикс для очень маленьких экранов */
+@media (max-width: 360px) {
+    .mobile-header-title {
+        font-size: 16px !important;
+    }
+
+    .mobile-nav-label {
+        font-size: 9px !important;
+    }
+
+    .mobile-nav-btn svg {
+        width: 20px !important;
+        height: 20px !important;
+    }
+}

@@ -23,11 +23,11 @@
     <link rel="stylesheet" href="notifications.css">
     <link rel="stylesheet" href="badges.css">
     <link rel="stylesheet" href="telegram-search.css">
-    <link rel="stylesheet" href="message-menu.css?v=1763680516987">
-    <link rel="stylesheet" href="dm-menu.css?v=1763680516987">
-    <link rel="stylesheet" href="fullscreen-call.css?v=1763680516987">
-    <link rel="stylesheet" href="group-call.css?v=1763680516987">
-    <link rel="stylesheet" href="add-participant.css?v=1763680516987">
+    <link rel="stylesheet" href="message-menu.css?v=1763798796732">
+    <link rel="stylesheet" href="dm-menu.css?v=1763798796732">
+    <link rel="stylesheet" href="fullscreen-call.css?v=1763798796732">
+    <link rel="stylesheet" href="group-call.css?v=1763798796732">
+    <link rel="stylesheet" href="add-participant.css?v=1763798796732">
     <link rel="stylesheet" href="account-switcher.css">
     <!-- DevTools Protection -->
     <script src="devtools-detector.js"></script>
@@ -647,57 +647,24 @@
         </div>
     </div>
 
-    <!-- Admin Panel -->
-    <!-- Admin Panel - Updated -->
-    <div id="adminPanel" class="admin-panel">
-        <div class="admin-panel-overlay"></div>
-        <div class="admin-panel-content">
-            <div class="admin-panel-header">
-                <h2>🛡️ Админ панель</h2>
-                <button class="admin-close-btn" id="adminPanelClose">✕</button>
+    <!-- Settings Modal (Full Featured) -->
+    <div id="settingsModal" class="settings-modal hidden">
+        <div class="settings-modal-overlay"></div>
+        <div class="settings-modal-content">
+            <div class="settings-modal-header">
+                <h2>⚙️ Настройки</h2>
+                <button class="settings-modal-close" id="settingsModalClose">✕</button>
             </div>
-            <div class="admin-panel-body">
-                <!-- Search Section -->
-                <div class="admin-section">
-                    <h3>🔍 Поиск пользователей</h3>
-                    <div class="admin-search-box">
-                        <input type="text" id="adminUserSearch" placeholder="Введите имя или email..." class="admin-input">
-                        <button id="adminSearchBtn" class="admin-btn primary">Найти</button>
-                    </div>
-                    <div id="adminSearchResults" class="admin-search-results"></div>
+            <div class="settings-modal-body">
+                <div class="settings-sidebar">
+                    <div class="settings-category active" data-category="security">🔒 Безопасность</div>
+                    <div class="settings-category" data-category="privacy">🛡️ Приватность</div>
+                    <div class="settings-category" data-category="devices">📱 Устройства</div>
+                    <div class="settings-category" data-category="accounts">👤 Аккаунты</div>
+                    <div class="settings-category" data-category="qr-scanner">📷 QR Сканер</div>
                 </div>
-                
-                <!-- Selected User Info -->
-                <div class="admin-section">
-                    <div id="selectedUserInfo" class="selected-user-info">
-                        <em>Выберите пользователя из результатов поиска</em>
-                    </div>
-                </div>
-                
-                <!-- Badge Management -->
-                <div class="admin-section">
-                    <h3>🏅 Управление бейджами</h3>
-                    <select id="badgeSelect" class="admin-select">
-                        <option value="">Выберите бейдж</option>
-                        <option value="verified">✓ Verified (Синяя галочка)</option>
-                        <option value="developer">⚙️ Developer</option>
-                        <option value="founder">👑 Founder</option>
-                        <option value="admin">🛡️ Admin</option>
-                        <option value="nitro">💎 Nitro</option>
-                        <option value="partner">🤝 Partner</option>
-                        <option value="moderator">🔨 Moderator</option>
-                        <option value="supporter">❤️ Supporter</option>
-                    </select>
-                    <button id="giveBadgeBtn" class="admin-btn success">Выдать бейдж</button>
-                </div>
-                
-                <!-- User Actions -->
-                <div class="admin-section">
-                    <h3>⚡ Действия с пользователем</h3>
-                    <div class="admin-actions">
-                        <button id="banUserBtn" class="admin-btn danger">🚫 Забанить</button>
-                        <button id="unbanUserBtn" class="admin-btn warning">✅ Разбанить</button>
-                    </div>
+                <div class="settings-content" id="settingsContent">
+                    <!-- Контент будет загружаться динамически -->
                 </div>
             </div>
         </div>
@@ -742,22 +709,35 @@
         </div>
     </div>
 
-    <script src="notifications.js?v=1763680516987"></script>
-    <script src="badges.js?v=1763680516987"></script>
-    <script src="status-system-fix.js?v=1763680516987"></script>
-    <script src="script.js?v=1763680516987"></script>
-    <script src="modern-features.js?v=1763680516987"></script>
-    <script src="admin-features.js?v=1763680516987"></script>
-    <script src="ban-system.js?v=1763680516987"></script>
-    <script src="telegram-search.js?v=1763680516987"></script>
-    <script src="electron-notifications.js?v=1763680516987"></script>
-    <script src="media-upload.js?v=1763680516987"></script>
-    <script src="message-menu.js?v=1763680516987"></script>
-    <script src="dm-menu.js?v=1763680516987"></script>
-    <script src="blocked-status.js?v=1763680516987"></script>
-    <script src="fullscreen-call.js?v=1763680516987"></script>
-    <script src="group-call.js?v=1763680516987"></script>
-    <script src="add-participant.js?v=1763680516987"></script>
+    <script src="notifications.js?v=1763798796732"></script>
+    <script src="badges.js?v=1763798796732"></script>
+    <script src="status-system-fix.js?v=1763798796732"></script>
+    <script src="script.js?v=1763798796732"></script>
+    <script src="modern-features.js?v=1763798796732"></script>
+    <script src="admin-features.js?v=1763798796732"></script>
+    <script src="ban-system.js?v=1763798796732"></script>
+    <script src="telegram-search.js?v=1763798796732"></script>
+    <script src="electron-notifications.js?v=1763798796732"></script>
+    <script src="media-upload.js?v=1763798796732"></script>
+    <script src="message-menu.js?v=1763798796732"></script>
+    <script src="dm-menu.js?v=1763798796732"></script>
+    <script src="blocked-status.js?v=1763798796732"></script>
+    <script src="fullscreen-call.js?v=1763798796732"></script>
+    <script src="group-call.js?v=1763798796732"></script>
+    <script src="add-participant.js?v=1763798796732"></script>
     <script src="account-switcher.js"></script>
+    
+    <!-- Settings Modal Scripts -->
+    <link rel="stylesheet" href="settings-modal.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="settings-modal.js"></script>
+    <script src="settings-handlers.js"></script>
+    <script src="settings-devices-qr.js"></script>
+    <script src="settings-qr-accounts.js"></script>
+    
+    <!-- Mobile Adaptive -->
+    <link rel="stylesheet" href="mobile-adaptive.css">
+    <script src="mobile-navigation.js"></script>
 </body>
 </html>

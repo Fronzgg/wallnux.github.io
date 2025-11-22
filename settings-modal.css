@@ -1,0 +1,483 @@
+/* Settings Modal */
+.settings-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.settings-modal.hidden {
+    display: none;
+}
+
+.settings-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+}
+
+.settings-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 1000px;
+    height: 85vh;
+    background: #2f3136;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.settings-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #202225;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.settings-modal-header h2 {
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.settings-modal-close {
+    background: none;
+    border: none;
+    color: #b9bbbe;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.settings-modal-close:hover {
+    background: #40444b;
+    color: #fff;
+}
+
+.settings-modal-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+.settings-sidebar {
+    width: 220px;
+    background: #2f3136;
+    border-right: 1px solid #202225;
+    padding: 16px 8px;
+    overflow-y: auto;
+}
+
+.settings-category {
+    padding: 10px 16px;
+    margin: 4px 0;
+    border-radius: 6px;
+    color: #b9bbbe;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.settings-category:hover {
+    background: #40444b;
+    color: #dcddde;
+}
+
+.settings-category.active {
+    background: #5865f2;
+    color: #fff;
+}
+
+.settings-content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    background: #36393f;
+}
+
+/* Settings Sections */
+.settings-section-content {
+    max-width: 740px;
+}
+
+.settings-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #40444b;
+}
+
+.settings-group {
+    background: #2f3136;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.settings-group-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #40444b;
+}
+
+.settings-item:last-child {
+    border-bottom: none;
+}
+
+.settings-item-label {
+    flex: 1;
+}
+
+.settings-item-label h4 {
+    margin: 0 0 4px 0;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.settings-item-label p {
+    margin: 0;
+    color: #b9bbbe;
+    font-size: 13px;
+}
+
+.settings-item-control {
+    margin-left: 20px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #72767d;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.toggle-switch.active {
+    background: #3ba55d;
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.toggle-switch.active::after {
+    transform: translateX(20px);
+}
+
+/* Form Elements */
+.settings-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: #202225;
+    border: 1px solid #202225;
+    border-radius: 4px;
+    color: #dcddde;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.settings-input:focus {
+    outline: none;
+    border-color: #5865f2;
+}
+
+.settings-select {
+    width: 100%;
+    padding: 10px 12px;
+    background: #202225;
+    border: 1px solid #202225;
+    border-radius: 4px;
+    color: #dcddde;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.settings-btn {
+    padding: 10px 20px;
+    background: #5865f2;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.settings-btn:hover {
+    background: #4752c4;
+}
+
+.settings-btn.danger {
+    background: #ed4245;
+}
+
+.settings-btn.danger:hover {
+    background: #c03537;
+}
+
+.settings-btn.secondary {
+    background: #4f545c;
+}
+
+.settings-btn.secondary:hover {
+    background: #5d6269;
+}
+
+/* QR Scanner */
+.qr-scanner-container {
+    text-align: center;
+}
+
+.qr-video-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 20px auto;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+}
+
+#qrVideo {
+    width: 100%;
+    height: auto;
+}
+
+.qr-scanner-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 250px;
+    height: 250px;
+    border: 3px solid #5865f2;
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+}
+
+.qr-scanner-controls {
+    margin-top: 20px;
+}
+
+/* Device List */
+.device-list {
+    margin-top: 16px;
+}
+
+.device-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #2f3136;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.device-icon {
+    width: 48px;
+    height: 48px;
+    background: #5865f2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+}
+
+.device-info {
+    flex: 1;
+}
+
+.device-name {
+    color: #fff;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.device-details {
+    color: #b9bbbe;
+    font-size: 13px;
+}
+
+.device-current {
+    background: #3ba55d;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.device-remove {
+    background: #ed4245;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.device-remove:hover {
+    background: #c03537;
+}
+
+/* Account Cards */
+.saved-account-card {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    background: #2f3136;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.saved-account-card.current {
+    border-color: #5865f2;
+}
+
+.account-avatar-large {
+    width: 56px;
+    height: 56px;
+    background: #5865f2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    font-weight: 600;
+    margin-right: 16px;
+}
+
+.account-info-large {
+    flex: 1;
+}
+
+.account-name-large {
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.account-email-large {
+    color: #b9bbbe;
+    font-size: 14px;
+}
+
+.account-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.switch-btn {
+    background: #5865f2;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.switch-btn:hover {
+    background: #4752c4;
+}
+
+.remove-btn {
+    background: #ed4245;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.2s;
+}
+
+.remove-btn:hover {
+    background: #c03537;
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    color: #b9bbbe;
+    padding: 40px;
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .settings-modal-content {
+        width: 100%;
+        height: 100vh;
+        border-radius: 0;
+    }
+    
+    .settings-sidebar {
+        width: 180px;
+    }
+    
+    .settings-content {
+        padding: 16px;
+    }
+}

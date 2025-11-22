@@ -73,6 +73,75 @@ async function login(email, password) {
             return;
         }
         
+        // Проверка облачного пароля
+        if (data.requireCloudPassword) {
+            const cloudPassword = await showCloudPasswordModal();
+            if (!cloudPassword) {
+                showNotification('Облачный пароль обязателен', 'error');
+                return;
+            }
+            
+            const cloudResponse = await fetch('/api/verify-cloud-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, cloudPassword })
+            });
+            
+            const cloudData = await cloudResponse.json();
+            
+            if (!cloudResponse.ok) {
+                showNotification('Неверный облачный пароль', 'error');
+                return;
+            }
+            
+            // Если требуется 2FA после облачного пароля
+            if (cloudData.require2FA) {
+                data.require2FA = true;
+            }
+            
+            // Если есть токен - используем его
+            if (cloudData.token) {
+                data.token = cloudData.token;
+                data.user = cloudData.user;
+            }
+        }
+        
+        // Проверка 2FA
+        if (data.require2FA) {
+            showNotification('Код отправлен от WallNux Support', 'info');
+            
+            const code2FA = await showTwoFAModal();
+            if (!code2FA || code2FA.length !== 6) {
+                showNotification('Неверный код', 'error');
+                return;
+            }
+            
+            const twoFAResponse = await fetch('/api/verify-2fa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code: code2FA })
+            });
+            
+            const twoFAData = await twoFAResponse.json();
+            
+            if (!twoFAResponse.ok) {
+                showNotification('Неверный код 2FA', 'error');
+                return;
+            }
+            
+            // Получаем токен из ответа 2FA
+            if (twoFAData.token) {
+                data.token = twoFAData.token;
+                data.user = twoFAData.user;
+            }
+        }
+        
+        // Проверяем что есть токен
+        if (!data.token) {
+            showNotification('Ошибка получения токена', 'error');
+            return;
+        }
+        
         // Добавить аккаунт в Account Manager
         if (window.accountManager) {
             window.accountManager.addAccount(data.user, data.token);
@@ -304,3 +373,239 @@ async function handleCodeLogin(e) {
         showNotification('Ошибка сети', 'error');
     }
 }
+
+// QR Сканер на странице входа
+document.addEventListener('DOMContentLoaded', () => {
+    const scanQRBtn = document.getElementById('scanQRBtn');
+    const stopQRScanBtn = document.getElementById('stopQRScanBtn');
+    
+    if (scanQRBtn) {
+        scanQRBtn.addEventListener('click', startQRScanner);
+    }
+    
+    if (stopQRScanBtn) {
+        stopQRScanBtn.addEventListener('click', stopQRScanner);
+    }
+});
+
+let qrScannerStream = null;
+
+async function startQRScanner() {
+    const scannerContainer = document.getElementById('qrScannerContainer');
+    const video = document.getElementById('qrScannerVideo');
+    const scanBtn = document.getElementById('scanQRBtn');
+    const resultDiv = document.getElementById('qrScanResult');
+    
+    try {
+        qrScannerStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' } 
+        });
+        
+        video.srcObject = qrScannerStream;
+        video.play();
+        
+        scannerContainer.style.display = 'block';
+        scanBtn.style.display = 'none';
+        
+        // Сканировать QR
+        scanQRFromVideo(video, resultDiv);
+    } catch (error) {
+        console.error('Ошибка доступа к камере:', error);
+        showNotification('Ошибка доступа к камере', 'error');
+    }
+}
+
+function scanQRFromVideo(video, resultDiv) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    const scan = () => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            
+            if (typeof jsQR !== 'undefined') {
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    handleScannedQR(code.data, resultDiv);
+                    return;
+                }
+            }
+        }
+        
+        if (qrScannerStream) {
+            requestAnimationFrame(scan);
+        }
+    };
+    
+    scan();
+}
+
+async function handleScannedQR(qrData, resultDiv) {
+    console.log('QR отсканирован:', qrData);
+    
+    if (!qrData.startsWith('wallnux://login?code=')) {
+        resultDiv.innerHTML = '<p style="color: #ed4245;">Это не QR код WallNux</p>';
+        return;
+    }
+    
+    const code = qrData.split('code=')[1];
+    
+    resultDiv.innerHTML = '<p style="color: #3ba55d;">✅ QR код распознан! Вход...</p>';
+    
+    stopQRScanner();
+    
+    try {
+        const response = await fetch(`/api/check-login-code/${code}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                if (window.accountManager) {
+                    window.accountManager.addAccount(data.user, data.token);
+                } else {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                }
+                
+                showNotification('Вход выполнен!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 500);
+            } else {
+                showNotification('Код истек или недействителен', 'error');
+            }
+        } else {
+            showNotification('Ошибка входа', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка входа по QR:', error);
+        showNotification('Ошибка сети', 'error');
+    }
+}
+
+function stopQRScanner() {
+    const scannerContainer = document.getElementById('qrScannerContainer');
+    const video = document.getElementById('qrScannerVideo');
+    const scanBtn = document.getElementById('scanQRBtn');
+    
+    if (qrScannerStream) {
+        qrScannerStream.getTracks().forEach(track => track.stop());
+        qrScannerStream = null;
+    }
+    
+    if (video) {
+        video.srcObject = null;
+    }
+    
+    if (scannerContainer) {
+        scannerContainer.style.display = 'none';
+    }
+    
+    if (scanBtn) {
+        scanBtn.style.display = 'block';
+    }
+}
+
+console.log('✅ Auth.js загружен с QR сканером');
+
+
+// Модальное окно облачного пароля
+function showCloudPasswordModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('cloudPasswordModal');
+        const input = document.getElementById('cloudPasswordInput');
+        
+        modal.style.display = 'flex';
+        input.value = '';
+        input.focus();
+        
+        // Сохранить resolve в глобальную переменную
+        window.cloudPasswordResolve = resolve;
+        
+        // Enter для отправки
+        input.onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                submitCloudPassword();
+            }
+        };
+    });
+}
+
+function submitCloudPassword() {
+    const input = document.getElementById('cloudPasswordInput');
+    const modal = document.getElementById('cloudPasswordModal');
+    const password = input.value.trim();
+    
+    modal.style.display = 'none';
+    
+    if (window.cloudPasswordResolve) {
+        window.cloudPasswordResolve(password);
+        window.cloudPasswordResolve = null;
+    }
+}
+
+function cancelCloudPassword() {
+    const modal = document.getElementById('cloudPasswordModal');
+    modal.style.display = 'none';
+    
+    if (window.cloudPasswordResolve) {
+        window.cloudPasswordResolve(null);
+        window.cloudPasswordResolve = null;
+    }
+}
+
+// Модальное окно 2FA
+function showTwoFAModal() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('twoFAModal');
+        const input = document.getElementById('twoFACodeInput');
+        
+        modal.style.display = 'flex';
+        input.value = '';
+        input.focus();
+        
+        // Сохранить resolve в глобальную переменную
+        window.twoFAResolve = resolve;
+        
+        // Enter для отправки
+        input.onkeypress = (e) => {
+            if (e.key === 'Enter') {
+                submitTwoFACode();
+            }
+        };
+        
+        // Только цифры
+        input.oninput = (e) => {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        };
+    });
+}
+
+function submitTwoFACode() {
+    const input = document.getElementById('twoFACodeInput');
+    const modal = document.getElementById('twoFAModal');
+    const code = input.value.trim();
+    
+    modal.style.display = 'none';
+    
+    if (window.twoFAResolve) {
+        window.twoFAResolve(code);
+        window.twoFAResolve = null;
+    }
+}
+
+function cancelTwoFA() {
+    const modal = document.getElementById('twoFAModal');
+    modal.style.display = 'none';
+    
+    if (window.twoFAResolve) {
+        window.twoFAResolve(null);
+        window.twoFAResolve = null;
+    }
+}
+
+console.log('✅ Auth.js с модальными окнами загружен');

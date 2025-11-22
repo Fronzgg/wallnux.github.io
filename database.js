@@ -31,6 +31,11 @@ function initializeDatabase() {
             // Ignore error if column already exists
         });
         
+        // Add settings column if it doesn't exist
+        db.run(`ALTER TABLE users ADD COLUMN settings TEXT`, (err) => {
+            // Ignore error if column already exists
+        });
+        
         // Add badges column if it doesn't exist
         db.run(`ALTER TABLE users ADD COLUMN badges TEXT DEFAULT '[]'`, (err) => {
             // Ignore error if column already exists

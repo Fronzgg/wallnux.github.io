@@ -444,6 +444,22 @@
                     <p class="qr-info" style="margin-top: 10px; font-size: 12px;">
                         Откройте WallNux на телефоне → Настройки → Устройства → Добавить устройство
                     </p>
+                    
+                    <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <p class="qr-info" style="margin-bottom: 12px;">Или отсканируйте QR код с другого устройства</p>
+                        <button type="button" class="submit-btn" id="scanQRBtn" style="background: #5865f2;">
+                            📷 Отсканировать QR код
+                        </button>
+                    </div>
+                    
+                    <!-- QR Scanner -->
+                    <div id="qrScannerContainer" style="display: none; margin-top: 20px;">
+                        <video id="qrScannerVideo" style="width: 100%; border-radius: 12px; background: #000;"></video>
+                        <div id="qrScanResult" style="margin-top: 12px; text-align: center;"></div>
+                        <button type="button" class="submit-btn" id="stopQRScanBtn" style="margin-top: 12px; background: #ed4245;">
+                            Остановить сканирование
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -467,7 +483,87 @@
         </div>
     </div>
 
+    <!-- Модальное окно облачного пароля -->
+    <div id="cloudPasswordModal" class="security-modal" style="display: none;">
+        <div class="security-modal-content">
+            <h2>🔐 Облачный пароль</h2>
+            <p>Введите облачный пароль для продолжения</p>
+            <input type="password" id="cloudPasswordInput" placeholder="Облачный пароль" 
+                   style="width: 100%; padding: 12px; margin: 20px 0; border: 2px solid #667eea; border-radius: 8px; font-size: 16px; background: rgba(255,255,255,0.1); color: #fff;">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="submitCloudPassword()" class="submit-btn" style="flex: 1;">Продолжить</button>
+                <button onclick="cancelCloudPassword()" class="submit-btn" style="flex: 1; background: #ed4245;">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно 2FA кода -->
+    <div id="twoFAModal" class="security-modal" style="display: none;">
+        <div class="security-modal-content">
+            <h2>🔢 Двухфакторная аутентификация</h2>
+            <p>Код отправлен от WallNux Support</p>
+            <p style="font-size: 13px; color: #b9bbbe; margin-top: 8px;">Откройте ЛС с WallNux Support и скопируйте 6-значный код</p>
+            <input type="text" id="twoFACodeInput" maxlength="6" placeholder="000000" 
+                   style="width: 100%; padding: 12px; margin: 20px 0; border: 2px solid #667eea; border-radius: 8px; font-size: 24px; text-align: center; letter-spacing: 8px; background: rgba(255,255,255,0.1); color: #fff;">
+            <div style="display: flex; gap: 10px;">
+                <button onclick="submitTwoFACode()" class="submit-btn" style="flex: 1;">Войти</button>
+                <button onclick="cancelTwoFA()" class="submit-btn" style="flex: 1; background: #ed4245;">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .security-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .security-modal-content {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideUp 0.3s ease;
+        }
+
+        .security-modal-content h2 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            font-size: 24px;
+        }
+
+        .security-modal-content p {
+            margin: 0 0 10px 0;
+            color: #b9bbbe;
+            font-size: 14px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="account-switcher.js"></script>
     <script src="auth.js"></script>
 </body>
 </html>

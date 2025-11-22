@@ -19,7 +19,7 @@ function generateQRCode() {
 // Получить информацию об устройстве
 function getDeviceInfo(req) {
     const userAgent = req.headers['user-agent'] || '';
-    const ip = req.ip || req.connection.remoteAddress;
+    const ip = req.ip || (req.connection && req.connection.remoteAddress) || 'Unknown';
     
     // Определить браузер
     let browser = 'Unknown';

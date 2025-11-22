@@ -191,6 +191,50 @@ function connectToSocketIO() {
         console.log('⚠️ Disconnected from server. Reason:', reason);
     });
     
+    // Принудительный выход (сеанс завершен)
+    socket.on('force-logout', (data) => {
+        console.log('🚫 Принудительный выход:', data.reason);
+        
+        // Показать модальное окно
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        `;
+        
+        modal.innerHTML = `
+            <div style="background: #2f3136; padding: 32px; border-radius: 12px; text-align: center; max-width: 400px;">
+                <h2 style="color: #fff; margin-bottom: 16px;">🚫 Сеанс завершен</h2>
+                <p style="color: #b9bbbe; margin-bottom: 24px;">${data.reason}</p>
+                <button onclick="window.location.href='login.html'" style="
+                    background: #5865f2;
+                    color: #fff;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                ">Хорошо</button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Через 5 секунд принудительно перенаправить
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 5000);
+    });
+    
     socket.on('reconnect', (attemptNumber) => {
         console.log('🔄 Reconnected after', attemptNumber, 'attempts');
     });
@@ -2671,13 +2715,29 @@ function createPeerConnection(remoteSocketId, isInitiator) {
     
     const pc = new RTCPeerConnection({
         iceServers: [
+            // STUN серверы для определения публичного IP
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302' }
+            // Бесплатные публичные TURN серверы для пробивания NAT
+            {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            }
         ],
-        iceCandidatePoolSize: 10
+        iceCandidatePoolSize: 10,
+        iceTransportPolicy: 'all' // Использовать все доступные методы
     });
 
     peerConnections[remoteSocketId] = pc;
