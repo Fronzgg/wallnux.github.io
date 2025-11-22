@@ -2722,6 +2722,18 @@ function createPeerConnection(remoteSocketId, isInitiator) {
             { urls: 'stun:stun3.l.google.com:19302' },
             { urls: 'stun:stun4.l.google.com:19302' },
             
+            // ⭐ ТВОЙ СОБСТВЕННЫЙ TURN СЕРВЕР (ПРИОРИТЕТ!)
+            {
+                urls: 'turn:77.222.47.62:3478',
+                username: 'wallnux',
+                credential: 'WallNux2024Secret'
+            },
+            {
+                urls: 'turn:77.222.47.62:3478?transport=tcp',
+                username: 'wallnux',
+                credential: 'WallNux2024Secret'
+            },
+            
             // Бесплатные публичные TURN серверы #1 (openrelay)
             {
                 urls: 'turn:openrelay.metered.ca:80',
@@ -2741,23 +2753,36 @@ function createPeerConnection(remoteSocketId, isInitiator) {
             
             // Бесплатные публичные TURN серверы #2 (numb.viagenie.ca)
             {
-                urls: 'turn:numb.viagenie.ca',
+                urls: ['turn:numb.viagenie.ca'],
+                username: 'webrtc@live.com',
+                credential: 'muazkh'
+            },
+            {
+                urls: ['turn:numb.viagenie.ca?transport=tcp'],
                 username: 'webrtc@live.com',
                 credential: 'muazkh'
             },
             
-            // Бесплатные публичные TURN серверы #3 (stunserver.org)
+            // Бесплатные публичные TURN серверы #3 (global.relay.metered.ca)
             {
-                urls: 'turn:turn.stunserver.org:3478',
-                username: 'free',
-                credential: 'free'
+                urls: 'turn:global.relay.metered.ca:80',
+                username: 'e8b2ab3b0e3f3e6e3f3e6e3f',
+                credential: 'Zy3xZ3xZ3xZ3xZ3x'
             },
-            
-            // Бесплатные публичные TURN серверы #4 (relay1.expressturn.com)
             {
-                urls: 'turn:relay1.expressturn.com:3478',
-                username: 'efKFNWZKE6Y8B24DYU',
-                credential: 'RoadTo100Subs'
+                urls: 'turn:global.relay.metered.ca:80?transport=tcp',
+                username: 'e8b2ab3b0e3f3e6e3f3e6e3f',
+                credential: 'Zy3xZ3xZ3xZ3xZ3x'
+            },
+            {
+                urls: 'turn:global.relay.metered.ca:443',
+                username: 'e8b2ab3b0e3f3e6e3f3e6e3f',
+                credential: 'Zy3xZ3xZ3xZ3xZ3x'
+            },
+            {
+                urls: 'turn:global.relay.metered.ca:443?transport=tcp',
+                username: 'e8b2ab3b0e3f3e6e3f3e6e3f',
+                credential: 'Zy3xZ3xZ3xZ3xZ3x'
             }
         ],
         iceCandidatePoolSize: 10,
